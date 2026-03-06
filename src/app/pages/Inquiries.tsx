@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
-import { CheckCircle2, Send, Phone, MessageCircle, Mail, MapPin, Clock, PhoneCall } from "lucide-react";
+import { CheckCircle2, Send, Phone, MessageCircle, Mail, MapPin, Clock } from "lucide-react";
 import { useSeniorMode } from "../components/SeniorModeContext";
+import { IMG } from "../components/image-data";
+import { ImageHeroSection } from "../components/image-first";
+import { PhoneButton } from "../components/shared";
 
 const V = {
   대표전화: "추후 개통예정",
@@ -12,12 +14,10 @@ const V = {
 
 export function InquiriesPage() {
   const { isSenior } = useSeniorMode();
-  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({ name: "", phone: "", category: "서비스", content: "" });
 
   const sz = isSenior ? "text-[18px]" : "text-sm";
-  const szH = isSenior ? "text-[28px] md:text-[34px]" : "text-3xl md:text-4xl";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,17 +26,21 @@ export function InquiriesPage() {
 
   return (
     <div>
-      {/* Hero */}
-      <section className="bg-gradient-to-br from-[#071A2B] to-[#0B2A3A] py-10 md:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className={`text-white mb-4 ${szH}`} style={{ fontWeight: 800 }}>
-            {isSenior ? "전화가 제일 쉬워요" : "문의는 가장 쉬운 방법으로"}
-          </h1>
-          <p className={`text-white/70 leading-relaxed ${isSenior ? "text-[18px]" : ""}`}>
-            {isSenior ? "아래 큰 버튼을 눌러주세요." : "궁금한 점이 있으시면 편하게 연락해 주세요."}
-          </p>
-        </div>
-      </section>
+      {/* Hero (이미지형) */}
+      <ImageHeroSection
+        image={IMG.inquiriesHero}
+        imageLabel="(이미지) 문의/오시는길: 전화 상담 및 안내"
+        title={isSenior ? "전화가 제일 쉬워요" : "문의는 가장 쉬운 방법으로"}
+        subtitle={isSenior ? "아래 큰 버튼을 누르시면 바로 안내해 드려요." : "궁금한 점이 있으시면 편하게 연락해 주세요."}
+        badge="문의/오시는 길"
+        isSenior={isSenior}
+      >
+        {isSenior && (
+          <div className="mt-2">
+            <PhoneButton isSenior />
+          </div>
+        )}
+      </ImageHeroSection>
 
       {/* 3 Contact Buttons */}
       <section className="py-8 md:py-12 bg-white">

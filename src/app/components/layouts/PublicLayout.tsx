@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { Menu, X, Phone, Mail, MapPin, Eye, PhoneCall, MessageCircle, PenLine, Shield, LogIn, LogOut as LogOutIcon, User, Info, Headphones } from "lucide-react";
 import { useSeniorMode } from "../SeniorModeContext";
 import { useAuth } from "../AuthContext";
 import { ScrollToTop } from "../ScrollToTop";
-import logoImg from "figma:asset/f4694bdbad3c9ccbf0dc80f21c4e4f77783ad26f.png";
+import logoImg from "../../../assets/f4694bdbad3c9ccbf0dc80f21c4e4f77783ad26f.png";
 
 const GOnDolBomLogo = ({ className = "w-9 h-9", light = false }: { className?: string; light?: boolean }) => (
   <svg viewBox="0 0 124 120" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
@@ -36,31 +36,51 @@ const NAV = [
   { label: "문의/오시는 길", path: "/inquiries" },
 ];
 
+function normalizePath(path: string) {
+  if (path.length > 1 && path.endsWith("/")) return path.slice(0, -1);
+  return path;
+}
+
+function isPathActive(currentPath: string, targetPath: string) {
+  const current = normalizePath(currentPath);
+  const target = normalizePath(targetPath);
+  if (target === "/") return current === "/";
+  return current === target || current.startsWith(`${target}/`);
+}
+
 export function PublicLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isHome = location.pathname === "/";
-  const hasFullHero = ["/", "/about", "/join", "/services", "/community", "/notices", "/inquiries"].includes(location.pathname);
+  const isFullScreenAuth = location.pathname === "/login";
   const { isSenior, toggleSenior } = useSeniorMode();
   const [open, setOpen] = useState(false);
-  const { isLoggedIn, userName, login, logout } = useAuth();
+  const { isLoggedIn, userName, logout } = useAuth();
 
   const txtBase = isSenior ? "text-[18px]" : "text-sm";
   const btnH = isSenior ? "min-h-[56px]" : "";
+  const currentPath = normalizePath(location.pathname);
+  const needsHeaderOffset = !isHome;
+
+  useEffect(() => {
+    setOpen(false);
+  }, [currentPath]);
 
   return (
-    <div className={`min-h-screen flex flex-col ${isSenior ? "text-[20px] leading-[1.7]" : "text-base leading-[1.6]"}`}>
+    <div className={`min-h-screen w-full overflow-x-hidden flex flex-col ${isSenior ? "text-[20px] leading-[1.7]" : "text-base leading-[1.6]"}`}>
       <ScrollToTop />
       {/* Header */}
+      {!isFullScreenAuth && (
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           isHome ? "bg-white/90 backdrop-blur-md shadow-sm" : "bg-white shadow-sm"
-        }`}
+        } overflow-x-hidden`}
       >
         <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            <Link to="/" className="flex items-center gap-2 mr-auto">
+          <div className="flex min-w-0 items-center justify-between h-16 md:h-20">
+            <Link to="/" className="flex min-w-0 shrink items-center gap-2 mr-auto">
               <img src={logoImg} alt="G온돌봄" className="w-8 h-8 object-contain" />
-              <span className="text-xl md:text-2xl tracking-tight" style={{ letterSpacing: "-0.01em" }}><span className="bg-clip-text text-transparent bg-gradient-to-r from-[#1D2A6A] via-[#219779] to-[#F8C21A]" style={{ fontFamily: "'Jua', sans-serif", fontWeight: 400 }}>온돌봄</span></span>
+              <span className="min-w-0 truncate text-xl md:text-2xl tracking-tight" style={{ letterSpacing: "-0.01em" }}><span className="bg-clip-text text-transparent bg-gradient-to-r from-[#1D2A6A] via-[#219779] to-[#F8C21A]" style={{ fontFamily: "'Jua', sans-serif", fontWeight: 400 }}>온돌봄</span></span>
             </Link>
 
             {/* Desktop Nav */}
@@ -70,7 +90,7 @@ export function PublicLayout() {
                   key={n.path}
                   to={n.path}
                   className={`px-4 py-2 rounded-lg ${txtBase} transition-colors ${
-                    location.pathname === n.path
+                    isPathActive(currentPath, n.path)
                       ? "bg-[#1F6B78]/10 text-[#1F6B78]"
                       : "text-[#374151] hover:text-[#111827] hover:bg-gray-50"
                   }`}
@@ -123,7 +143,7 @@ export function PublicLayout() {
                 </div>
               ) : (
                 <button
-                  onClick={() => login("관리자")}
+                  onClick={() => navigate("/login")}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-full ${txtBase} bg-[#1F6B78] text-white hover:bg-[#185A65] transition-colors cursor-pointer ${btnH}`}
                   style={{ fontWeight: 600 }}
                 >
@@ -134,7 +154,7 @@ export function PublicLayout() {
             </div>
 
             {/* Mobile: senior toggle + menu */}
-            <div className="flex lg:hidden items-center gap-2">
+            <div className="flex shrink-0 lg:hidden items-center gap-2">
               <button
                 onClick={toggleSenior}
                 className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs cursor-pointer ${
@@ -166,7 +186,7 @@ export function PublicLayout() {
                   to={n.path}
                   onClick={() => setOpen(false)}
                   className={`block px-4 py-3 rounded-lg ${txtBase} ${
-                    location.pathname === n.path
+                    isPathActive(currentPath, n.path)
                       ? "bg-[#1F6B78]/10 text-[#1F6B78]"
                       : "text-[#374151]"
                   }`}
@@ -191,7 +211,7 @@ export function PublicLayout() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => { login("관리자"); setOpen(false); }}
+                    onClick={() => { navigate("/login"); setOpen(false); }}
                     className={`w-full text-center px-4 py-3 rounded-lg ${txtBase} bg-[#1F6B78] text-white cursor-pointer`}
                     style={{ fontWeight: 600 }}
                   >
@@ -212,16 +232,24 @@ export function PublicLayout() {
           </div>
         )}
       </header>
+      )}
 
       {/* Main */}
-      <main className={`${isHome ? "" : "pt-16 md:pt-20"} pb-16 md:pb-0`}>
+      <main
+        className={`${
+          isFullScreenAuth
+            ? "min-h-screen"
+            : `${needsHeaderOffset ? "pt-16 md:pt-20" : ""} pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0`
+        } w-full overflow-x-hidden`}
+      >
         <Outlet />
       </main>
 
       {/* ── Mobile Bottom Navigation Bar ── */}
-      <MobileBottomNav />
+      {!isFullScreenAuth && <MobileBottomNav />}
 
       {/* Footer (desktop only) */}
+      {!isFullScreenAuth && (
       <footer className="hidden md:block bg-[#0B1E2D] text-white/80 mt-auto">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -281,6 +309,7 @@ export function PublicLayout() {
           </div>
         </div>
       </footer>
+      )}
     </div>
   );
 }
@@ -288,8 +317,8 @@ export function PublicLayout() {
 /* ─── Mobile Bottom Nav Component ─── */
 function MobileBottomNav() {
   const location = useLocation();
-  const navigate = useNavigate();
   const { isSenior } = useSeniorMode();
+  const currentPath = normalizePath(location.pathname);
 
   const V_대표전화 = "추후 개통예정";
 
@@ -302,10 +331,13 @@ function MobileBottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#E5E7EB] shadow-[0_-2px_10px_rgba(0,0,0,0.06)] md:hidden">
-      <div className="grid grid-cols-5 h-14">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 w-full bg-white border-t border-[#E5E7EB] shadow-[0_-2px_10px_rgba(0,0,0,0.06)] md:hidden"
+      style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0px)" }}
+    >
+      <div className="grid grid-cols-5 h-14 overflow-visible">
         {items.map((item) => {
-          const isActive = item.path ? location.pathname === item.path : false;
+          const isActive = item.path ? isPathActive(currentPath, item.path) : false;
           const isPhone = !item.path;
           const Icon = item.icon;
 
@@ -314,13 +346,13 @@ function MobileBottomNav() {
               <button
                 key={item.label}
                 onClick={item.action}
-                className="flex flex-col items-center justify-center gap-0.5 cursor-pointer relative"
+                className="flex flex-col items-center justify-center gap-0.5 cursor-pointer relative h-14"
               >
                 <div className="w-10 h-10 rounded-full bg-[#1F6B78] flex items-center justify-center -mt-4 shadow-md border-2 border-white">
                   <Icon size={20} className="text-white" />
                 </div>
                 <span
-                  className={`text-[#1F6B78] ${isSenior ? "text-[11px]" : "text-[10px]"}`}
+                  className={`leading-none text-[#1F6B78] ${isSenior ? "text-[11px]" : "text-[10px]"}`}
                   style={{ fontWeight: 600 }}
                 >
                   {item.label}
@@ -333,13 +365,13 @@ function MobileBottomNav() {
             <Link
               key={item.label}
               to={item.path!}
-              className={`flex flex-col items-center justify-center gap-0.5 transition-colors ${
+              className={`flex h-14 flex-col items-center justify-center gap-0.5 transition-colors ${
                 isActive ? "text-[#1F6B78]" : "text-[#9CA3AF]"
               }`}
             >
               <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
               <span
-                className={`${isSenior ? "text-[11px]" : "text-[10px]"}`}
+                className={`leading-none ${isSenior ? "text-[11px]" : "text-[10px]"}`}
                 style={{ fontWeight: isActive ? 700 : 500 }}
               >
                 {item.label}
@@ -348,8 +380,6 @@ function MobileBottomNav() {
           );
         })}
       </div>
-      {/* Safe area for iPhone notch */}
-      <div className="h-[env(safe-area-inset-bottom)]" />
     </nav>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, createContext, useContext } from "react";
+import { useEffect, useRef, useState, createContext, useContext } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import {
   LayoutDashboard, Users, UserPlus, Ban, Wallet,
@@ -9,7 +9,7 @@ import {
   Settings, Shield, Bell, ScrollText, Trash2,
   ChevronLeft, ChevronDown, ChevronRight, LogOut, Menu, Search, Plus, X, Eye
 } from "lucide-react";
-import logoImg from "figma:asset/f4694bdbad3c9ccbf0dc80f21c4e4f77783ad26f.png";
+import logoImg from "../../../assets/f4694bdbad3c9ccbf0dc80f21c4e4f77783ad26f.png";
 
 const AdminLogo = ({ className = "w-8 h-8" }: { className?: string }) => (
   <svg viewBox="0 0 124 120" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
@@ -101,6 +101,7 @@ const QUICK_ACTIONS = [
 ];
 
 export function AdminLayout() {
+  const SIDEBAR_SCROLL_KEY = "gondolbom-admin-sidebar-scroll";
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
@@ -110,6 +111,42 @@ export function AdminLayout() {
     new Set(NAV_GROUPS.map((g) => g.label))
   );
   const location = useLocation();
+  const desktopNavRef = useRef<HTMLElement | null>(null);
+  const mobileNavRef = useRef<HTMLElement | null>(null);
+  const sidebarScrollTopRef = useRef(0);
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+      if (!saved) return;
+      const parsed = Number(saved);
+      if (!Number.isNaN(parsed) && parsed >= 0) {
+        sidebarScrollTopRef.current = parsed;
+      }
+    } catch {
+      // ignore sessionStorage access issues
+    }
+  }, []);
+
+  const persistSidebarScroll = (nextTop: number) => {
+    sidebarScrollTopRef.current = nextTop;
+    try {
+      sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(nextTop));
+    } catch {
+      // ignore sessionStorage access issues
+    }
+  };
+
+  const restoreSidebarScroll = () => {
+    const top = sidebarScrollTopRef.current;
+    if (desktopNavRef.current) desktopNavRef.current.scrollTop = top;
+    if (mobileNavRef.current) mobileNavRef.current.scrollTop = top;
+  };
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(restoreSidebarScroll);
+    return () => window.cancelAnimationFrame(frame);
+  }, [location.pathname, mobileOpen]);
 
   const toggleLarge = () => setIsLarge(!isLarge);
   const toggleGroup = (label: string) => {
@@ -167,7 +204,17 @@ export function AdminLayout() {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-2 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#CBD5E1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gray-400">
+      <nav
+        ref={(el) => {
+          if (mobile) {
+            mobileNavRef.current = el;
+          } else {
+            desktopNavRef.current = el;
+          }
+        }}
+        onScroll={(e) => persistSidebarScroll(e.currentTarget.scrollTop)}
+        className="flex-1 py-2 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:#CBD5E1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gray-400"
+      >
         {NAV_GROUPS.map((group) => {
           const expanded = expandedGroups.has(group.label);
           return (
@@ -227,28 +274,7 @@ export function AdminLayout() {
       </nav>
 
       {/* Footer */}
-      <div className="p-2 border-t border-gray-100 space-y-1 shrink-0">
-        <button
-          onClick={toggleLarge}
-          className={`w-full flex items-center gap-2.5 rounded-lg text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer ${
-            collapsed && !mobile ? "p-2 justify-center" : "px-3 py-2"
-          }`}
-        >
-          <Eye size={16} />
-          {(!collapsed || mobile) && (
-            <span>{isLarge ? "큰 글자 모드 켜짐" : "큰 글자 모드"}</span>
-          )}
-        </button>
-        <Link
-          to="/"
-          className={`flex items-center gap-2.5 rounded-lg text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors ${
-            collapsed && !mobile ? "p-2 justify-center" : "px-3 py-2"
-          }`}
-        >
-          <LogOut size={16} />
-          {(!collapsed || mobile) && <span>홈으로 돌아가기</span>}
-        </Link>
-      </div>
+      <div className="h-2 border-t border-gray-100 shrink-0" />
     </aside>
   );
 
@@ -298,6 +324,30 @@ export function AdminLayout() {
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={toggleLarge}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                  isLarge
+                    ? "border-[#1F6B78]/30 bg-[#1F6B78]/10 text-[#1F6B78]"
+                    : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                }`}
+                style={{ fontWeight: 500 }}
+                title={isLarge ? "큰 글자 모드 켜짐" : "큰 글자 모드"}
+              >
+                <Eye size={16} />
+                <span className="hidden lg:inline text-xs">{isLarge ? "큰 글자 켜짐" : "큰 글자"}</span>
+              </button>
+
+              <Link
+                to="/"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors"
+                style={{ fontWeight: 500 }}
+                title="홈으로 돌아가기"
+              >
+                <LogOut size={16} />
+                <span className="hidden lg:inline text-xs">홈</span>
+              </Link>
+
               {/* Quick actions */}
               <div className="relative">
                 <button

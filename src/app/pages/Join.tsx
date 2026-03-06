@@ -2,13 +2,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { CheckCircle2, ArrowRight, ArrowLeft, PhoneCall, ChevronDown, MessageCircle, Handshake, Stethoscope, House, Bell, Vote } from "lucide-react";
 import { useSeniorMode } from "../components/SeniorModeContext";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { IMG } from "../components/image-data";
+import { useAuth } from "../components/AuthContext";
 import {
   V, Section, SectionTitle, SummaryBox, PhoneButton, FAQAccordion,
   StepperVisual,
 } from "../components/shared";
-import { SeedMoneyCard } from "../components/image-first";
+import { SeedMoneyCard, ImageHeroSection } from "../components/image-first";
 
 const SENIOR_FAQ = [
   { q: "출자금은 꼭 내야 하나요?", a: `네, 조합원이 되려면 ${V.출자금_최저} 이상의 출자금이 필요합니다. 금액은 부담 없는 범위에서 정하시면 됩니다.` },
@@ -20,6 +20,7 @@ const SENIOR_FAQ = [
 
 export function JoinPage() {
   const { isSenior } = useSeniorMode();
+  const { isLoggedIn, isRegistered, completeMembership } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [agree1, setAgree1] = useState(false);
@@ -50,61 +51,54 @@ export function JoinPage() {
   const handleNext = () => {
     if (step === 1) { if (!agree1 || !agree2) { setErrors({ agree: "필수 동의 2개를 체크해 주세요." }); return; } setErrors({}); setStep(2); }
     else if (step === 2) { if (validateStep2()) setStep(3); }
-    else if (step === 3) { if (validateStep3()) setStep(4); }
+    else if (step === 3) {
+      if (!validateStep3()) return;
+      if (!isLoggedIn || !isRegistered) {
+        alert("조합원 가입 신청을 완료하려면 먼저 로그인/회원가입이 필요합니다.");
+        navigate("/login?redirect=%2Fjoin");
+        return;
+      }
+      completeMembership();
+      setStep(4);
+    }
   };
 
   return (
     <div>
       {/* ── 이미지 히어로 (전화 도움 사진) ── */}
-      <section className="relative">
-        <div className="aspect-[16/9] md:aspect-[21/8] min-h-[380px] md:min-h-[360px]">
-          <ImageWithFallback src={IMG.joinHero} alt="전화 상담 안내" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#111827]/80 via-[#111827]/30 to-[#111827]/10" />
+      <ImageHeroSection
+        image={IMG.joinHero}
+        imageLabel="(이미지) 조합원 가입: 전화 상담 안내"
+        title={isSenior ? "가입은 어렵지 않아요." : "단 1분이면 우리 조합원이 됩니다."}
+        subtitle={isSenior ? "3번만 누르면 됩니다. 걱정되면 전화로 같이 해요." : "조합의 주인으로 참여하고, 지역 건강 돌봄의 연결을 함께 만듭니다."}
+        badge="조합원 가입"
+        isSenior={isSenior}
+      >
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
+          <button
+            onClick={() => alert(`대표전화: ${V.대표전화}`)}
+            className={`flex items-center justify-center gap-2 rounded-full bg-[#67B89A] text-white hover:bg-[#5AA889] transition-colors cursor-pointer active:scale-[0.98] ${isSenior ? "px-5 py-3 min-h-[48px] text-[16px]" : "px-4 py-2.5 min-h-[40px] text-sm"}`}
+            style={{ fontWeight: 700 }}
+          >
+            <PhoneCall size={isSenior ? 20 : 16} />
+            {isSenior ? `전화로 가입 도와주세요(${V.대표전화})` : "전화로 가입 도움"}
+          </button>
+          <button
+            onClick={() => alert(`카카오 채널: ${V.카카오채널}`)}
+            className={`flex items-center justify-center gap-2 rounded-full border border-white/30 text-white/90 hover:bg-white/10 transition-colors cursor-pointer active:scale-[0.98] ${isSenior ? "px-5 py-3 min-h-[48px] text-[16px]" : "px-4 py-2.5 min-h-[40px] text-sm"}`}
+            style={{ fontWeight: 500 }}
+          >
+            <MessageCircle size={isSenior ? 18 : 14} /> 카카오톡 문의
+          </button>
+          <button
+            onClick={() => navigate("/inquiries")}
+            className={`flex items-center justify-center gap-2 rounded-full border border-white/30 text-white/90 hover:bg-white/10 transition-colors cursor-pointer active:scale-[0.98] ${isSenior ? "px-5 py-3 min-h-[48px] text-[16px]" : "px-4 py-2.5 min-h-[40px] text-sm"}`}
+            style={{ fontWeight: 500 }}
+          >
+            문의 남기기
+          </button>
         </div>
-        <div className="absolute inset-0 flex items-end">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 md:pb-12 pt-20 w-full">
-            {!isSenior && (
-              <span className="inline-block px-3 py-1 rounded-full bg-white/10 text-[#67B89A] text-xs mb-3" style={{ fontWeight: 600 }}>
-                조합원 가입
-              </span>
-            )}
-            <h1
-              className={`text-white mb-2 ${isSenior ? "text-[24px] md:text-[32px]" : "text-2xl md:text-3xl"} leading-tight`}
-              style={{ fontWeight: 800 }}
-            >
-              {isSenior ? "가입은 어렵지 않아요." : "단 1분이면 우리 조합원이 됩니다."}
-            </h1>
-            <p className={`text-white/80 mb-5 ${isSenior ? "text-[17px]" : "text-sm md:text-base"}`}>
-              {isSenior ? "3번만 누르면 됩니다. 걱정되면 전화로 같이 해요." : "조합의 주인으로 참여하고, 지역 건강 돌봄의 연결을 함께 만듭니다."}
-            </p>
-            {/* 상단 큰 버튼들 */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
-              <button
-                onClick={() => alert(`대표전화: ${V.대표전화}`)}
-                className={`flex items-center justify-center gap-2 rounded-full bg-[#67B89A] text-white hover:bg-[#5AA889] transition-colors cursor-pointer active:scale-[0.98] ${isSenior ? "px-5 py-3 min-h-[48px] text-[16px]" : "px-4 py-2.5 min-h-[40px] text-sm"}`}
-                style={{ fontWeight: 700 }}
-              >
-                <PhoneCall size={isSenior ? 20 : 16} />
-                {isSenior ? `전화로 가입 도와주세요(${V.대표전화})` : "전화로 가입 도움"}
-              </button>
-              <button
-                onClick={() => alert(`카카오 채널: ${V.카카오채널}`)}
-                className={`flex items-center justify-center gap-2 rounded-full border border-white/30 text-white/90 hover:bg-white/10 transition-colors cursor-pointer active:scale-[0.98] ${isSenior ? "px-5 py-3 min-h-[48px] text-[16px]" : "px-4 py-2.5 min-h-[40px] text-sm"}`}
-                style={{ fontWeight: 500 }}
-              >
-                <MessageCircle size={isSenior ? 18 : 14} /> 카카오톡 문의
-              </button>
-              <button
-                onClick={() => navigate("/inquiries")}
-                className={`flex items-center justify-center gap-2 rounded-full border border-white/30 text-white/90 hover:bg-white/10 transition-colors cursor-pointer active:scale-[0.98] ${isSenior ? "px-5 py-3 min-h-[48px] text-[16px]" : "px-4 py-2.5 min-h-[40px] text-sm"}`}
-                style={{ fontWeight: 500 }}
-              >
-                문의 남기기
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+      </ImageHeroSection>
 
       {/* ── 10초 요약 (어르신) ── */}
       {isSenior && (

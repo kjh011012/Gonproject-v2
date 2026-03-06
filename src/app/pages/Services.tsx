@@ -1,72 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CheckCircle2, Stethoscope, HeartHandshake, Car, Leaf,
-  ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight, X,
 } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { useSeniorMode } from "../components/SeniorModeContext";
-import { IMG } from "../components/image-data";
+import { useAuth } from "../components/AuthContext";
+import { useServicesCatalog } from "../data/servicesCatalog";
 import {
   V, Section, SectionTitle, PhoneButton, FAQAccordion,
 } from "../components/shared";
 import { ImageHeroSection } from "../components/image-first";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-
-/* ─── 4대 서비스 카테고리 ─── */
-const SERVICE_CATEGORIES = [
-  {
-    id: "medical",
-    icon: "stethoscope" as const,
-    image: IMG.catMedical,
-    imageLabel: "(이미지) 찾아가는 의료: 방문진료 장면",
-    title: "찾아가는 의료 서비스",
-    seniorTitle: "의사·간호사가 직접 찾아가요",
-    subtitle: "의료 접근성 해결",
-    items: ["방문 진료", "방문 간호", "건강 상담", "만성질환 관리"],
-    message: "병원이 멀어도 의료가 먼저 찾아갑니다",
-    color: "#1F6B78",
-    bgLight: "#1F6B78",
-  },
-  {
-    id: "daily-care",
-    icon: "handHeart" as const,
-    image: IMG.catDailyCare,
-    imageLabel: "(이미지) 생활 돌봄: 식사·생활 지원 장면",
-    title: "생활 돌봄 서비스",
-    seniorTitle: "집에서 돌봄을 받아요",
-    subtitle: "일상 지원",
-    items: ["전문 돌봄 인력 방문", "식사 및 생활 지원", "안전 확인", "정서 지원"],
-    message: "혼자가 아닌 함께하는 돌봄",
-    color: "#67B89A",
-    bgLight: "#67B89A",
-  },
-  {
-    id: "hospital-support",
-    icon: "car" as const,
-    image: IMG.catHospitalSupport,
-    imageLabel: "(이미지) 병원 이용 지원: 동행·이동 장면",
-    title: "병원 이용 지원 서비스",
-    seniorTitle: "병원 갈 때 같이 가요",
-    subtitle: "이동 문제 해결",
-    items: ["병원 동행 서비스", "이동 지원", "예약 지원", "진료 안내"],
-    message: "병원 이용의 어려움을 해결합니다",
-    color: "#D97706",
-    bgLight: "#D97706",
-  },
-  {
-    id: "prevention",
-    icon: "leaf" as const,
-    image: IMG.catPrevention,
-    imageLabel: "(이미지) 건강 예방: 운동·건강교실 장면",
-    title: "건강 예방 관리",
-    seniorTitle: "미리미리 건강을 챙겨요",
-    subtitle: "예방과 건강 증진",
-    items: ["건강 체크", "생활 건강 상담", "운동 지도", "식생활 관리"],
-    message: "건강할 때부터 미리 챙깁니다",
-    color: "#059669",
-    bgLight: "#059669",
-  },
-];
 
 const SENIOR_FAQ = [
   { q: "거동이 불편해도 괜찮나요?", a: "네, 방문 진료·간호 연계를 통해 가능한 방법을 찾아드립니다." },
@@ -90,24 +35,99 @@ function CategoryIcon({ icon, size, className }: { icon: string; size: number; c
 
 export function ServicesPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { isSenior } = useSeniorMode();
+  const { isLoggedIn, isRegistered, isMember } = useAuth();
+  const { catalog } = useServicesCatalog();
+  const serviceCategories = catalog.categories;
   const [activeCat, setActiveCat] = useState<string | null>(null);
+  const [flowStep, setFlowStep] = useState<1 | 2>(1);
+  const [selectedReasonByCat, setSelectedReasonByCat] = useState<Record<string, string>>({});
+  const [appliedReasonByCat, setAppliedReasonByCat] = useState<Record<string, string>>({});
 
-  const scrollToCat = (catId: string) => {
+  const openServiceFlow = (catId: string) => {
     setActiveCat(catId);
-    const el = document.getElementById(`cat-${catId}`);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    setFlowStep(1);
   };
+  const closeServiceFlow = () => setActiveCat(null);
+
+  useEffect(() => {
+    const catId = searchParams.get("cat");
+    if (!catId) return;
+    if (!serviceCategories.some((cat) => cat.id === catId)) return;
+    window.setTimeout(() => openServiceFlow(catId), 120);
+  }, [searchParams, serviceCategories]);
+
+  useEffect(() => {
+    if (!activeCat) return;
+    if (serviceCategories.some((cat) => cat.id === activeCat)) return;
+    setActiveCat(null);
+  }, [activeCat, serviceCategories]);
+
+  useEffect(() => {
+    if (!activeCat) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeServiceFlow();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeCat]);
+
+  useEffect(() => {
+    if (!activeCat) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [activeCat]);
+
+  const handleApply = (catId: string, catTitle: string) => {
+    const redirectPath = `/services?cat=${catId}`;
+
+    if (!isLoggedIn) {
+      alert("서비스 신청은 로그인 후 이용할 수 있습니다.");
+      navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`);
+      return;
+    }
+
+    if (!isRegistered) {
+      alert("회원가입이 필요합니다. 회원가입 후 다시 신청해 주세요.");
+      navigate(`/login?redirect=${encodeURIComponent(redirectPath)}`);
+      return;
+    }
+
+    if (!isMember) {
+      const goJoin = window.confirm(
+        "조합원 가입이 되어 있어야만 이용이 가능합니다.\n확인을 누르면 조합원 가입 페이지로 이동합니다.",
+      );
+      if (goJoin) navigate("/join");
+      return;
+    }
+
+    const selectedReason = selectedReasonByCat[catId];
+    if (!selectedReason) {
+      alert("신청 사유 버튼을 선택해 주세요.");
+      return;
+    }
+
+    setAppliedReasonByCat((prev) => ({ ...prev, [catId]: selectedReason }));
+    alert(`[${catTitle}] 신청이 접수되었습니다.\n선택한 사유: ${selectedReason}`);
+  };
+
+  const activeCategory = activeCat
+    ? serviceCategories.find((cat) => cat.id === activeCat) ?? null
+    : null;
 
   return (
     <div>
       {/* ── 히어로 ── */}
       <ImageHeroSection
-        image={IMG.servicesHero}
-        imageLabel="(이미지) 서비스 안내: 의료·돌봄 현장"
-        title={isSenior ? "내 상황을 골라주세요" : "진료·돌봄·예방, 끊기지 않게"}
-        subtitle={isSenior ? "어렵다면 전화 주세요. 대신 찾아드려요." : "상황에 맞는 서비스를 한눈에 확인하세요."}
-        badge="서비스 안내"
+        image={catalog.heroImage}
+        imageLabel={catalog.heroImageLabel}
+        title={isSenior ? catalog.heroTitleSenior : catalog.heroTitle}
+        subtitle={isSenior ? catalog.heroSubtitleSenior : catalog.heroSubtitle}
+        badge={catalog.heroBadge}
         isSenior={isSenior}
       >
         {isSenior && (
@@ -126,11 +146,22 @@ export function ServicesPage() {
 
         {/* 4개 카테고리 카드 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {SERVICE_CATEGORIES.map((cat, idx) => (
+          {serviceCategories.map((cat, idx) => (
             <div
               key={cat.id}
               id={`cat-${cat.id}`}
-              className="scroll-mt-24 rounded-2xl overflow-hidden border border-[#E5E7EB] bg-white hover:shadow-lg transition-shadow flex flex-col"
+              onClick={() => openServiceFlow(cat.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  openServiceFlow(cat.id);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              className={`scroll-mt-24 rounded-2xl overflow-hidden border bg-white hover:shadow-lg transition-shadow flex flex-col ${
+                activeCat === cat.id ? "border-[#1F6B78] ring-2 ring-[#1F6B78]/20" : "border-[#E5E7EB]"
+              } cursor-pointer`}
             >
               {/* 이미지 영역 */}
               <div className="relative h-44 md:h-52 overflow-hidden">
@@ -166,7 +197,7 @@ export function ServicesPage() {
               {/* 텍스트 영역 */}
               <div className={`flex flex-col flex-1 ${isSenior ? "p-5 md:p-6" : "p-4 md:p-5"}`}>
                 {/* 서비스 항목 리스트 */}
-                <div className="space-y-2.5 flex-1 mb-4">
+                <div className="space-y-2.5 mb-4 flex-1">
                   {cat.items.map((item) => (
                     <div key={item} className="flex items-center gap-2.5">
                       <CheckCircle2
@@ -186,7 +217,7 @@ export function ServicesPage() {
 
                 {/* 핵심 메시지 */}
                 <div
-                  className={`rounded-xl border px-4 ${isSenior ? "py-4" : "py-3"}`}
+                  className={`rounded-xl border px-4 mb-4 ${isSenior ? "py-4" : "py-3"}`}
                   style={{
                     backgroundColor: `${cat.color}08`,
                     borderColor: `${cat.color}25`,
@@ -199,6 +230,17 @@ export function ServicesPage() {
                     {cat.message}
                   </p>
                 </div>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openServiceFlow(cat.id);
+                  }}
+                  className={`w-full mt-auto py-2.5 min-h-[48px] rounded-lg bg-[#1F6B78] text-white hover:bg-[#185A65] transition-colors cursor-pointer ${isSenior ? "text-[16px]" : "text-sm"}`}
+                  style={{ fontWeight: 700 }}
+                >
+                  단계별로 보기
+                </button>
               </div>
             </div>
           ))}
@@ -206,8 +248,9 @@ export function ServicesPage() {
 
         {/* 안내 문구 */}
         <p className="text-center text-xs text-[#9CA3AF] mt-6">
-          서비스 제공 범위는 운영 단계와 협력기관 연계에 따라 달라질 수 있습니다.
+          {catalog.disclaimer}
         </p>
+
       </Section>
 
       {/* ── 이용 방법 (3단계) ── */}
@@ -342,6 +385,227 @@ export function ServicesPage() {
           </div>
         </div>
       </Section>
+
+      {activeCategory && (
+        <div
+          className="fixed inset-0 z-[120] bg-[#0F172A]/60 p-2.5 sm:p-6 overflow-y-auto"
+          onClick={closeServiceFlow}
+          role="presentation"
+        >
+          <div className="flex min-h-full items-start justify-center sm:items-center py-2 sm:py-6">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="service-modal-title"
+              className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-[#E5E7EB] h-[calc(100dvh-1.25rem)] sm:h-auto sm:max-h-[92vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4 border-b border-[#E5E7EB] p-5 sm:p-6">
+                <div>
+                  <p className="text-xs text-[#6B7280]" style={{ fontWeight: 600 }}>서비스 단계 안내</p>
+                  <h3 id="service-modal-title" className="mt-1 text-xl text-[#111827]" style={{ fontWeight: 800 }}>
+                    {activeCategory.title}
+                  </h3>
+                  <p className="mt-1 text-sm text-[#4B5563]">{activeCategory.message}</p>
+                </div>
+                <button
+                  onClick={closeServiceFlow}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#E5E7EB] text-[#475569] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                  aria-label="모달 닫기"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="border-b border-[#E5E7EB] px-4 py-3 sm:px-6">
+                <div className="grid grid-cols-2 rounded-xl bg-[#F1F5F9] p-1 w-full gap-1">
+                  <button
+                    onClick={() => setFlowStep(1)}
+                    className={`rounded-lg px-3 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${
+                      flowStep === 1 ? "bg-white text-[#0F3E47] shadow-sm" : "text-[#64748B]"
+                    }`}
+                    style={{ fontWeight: 700 }}
+                  >
+                    1단계 설명 보기
+                  </button>
+                  <button
+                    onClick={() => setFlowStep(2)}
+                    className={`rounded-lg px-3 py-2 text-xs sm:text-sm transition-colors cursor-pointer ${
+                      flowStep === 2 ? "bg-white text-[#0F3E47] shadow-sm" : "text-[#64748B]"
+                    }`}
+                    style={{ fontWeight: 700 }}
+                  >
+                    2단계 신청하기
+                  </button>
+                </div>
+              </div>
+
+              <div className="max-h-[calc(100dvh-214px)] sm:max-h-[calc(92vh-190px)] overflow-y-auto p-4 sm:p-6">
+                {flowStep === 1 && (
+                  <div className="space-y-5">
+                    <div
+                      className="rounded-xl border p-4 sm:p-5"
+                      style={{
+                        borderColor: `${activeCategory.color}2A`,
+                        backgroundColor: `${activeCategory.color}0D`,
+                      }}
+                    >
+                      <p className="text-xs text-[#4B5563]" style={{ fontWeight: 700 }}>
+                        한눈에 이해하기
+                      </p>
+                      <h4 className="mt-1 text-[#111827] text-lg" style={{ fontWeight: 800 }}>
+                        이 서비스는 무엇을 도와주나요?
+                      </h4>
+                      <p className="mt-2 text-sm leading-6 text-[#374151]">
+                        {activeCategory.easyIntro}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h5 className="text-sm text-[#111827]" style={{ fontWeight: 800 }}>
+                        이런 분께 추천해요
+                      </h5>
+                      <div className="mt-3 space-y-2">
+                        {activeCategory.easyForWho.map((target) => (
+                          <div
+                            key={target}
+                            className="rounded-lg border px-3 py-2 text-sm break-keep"
+                            style={{
+                              borderColor: `${activeCategory.color}3D`,
+                              backgroundColor: `${activeCategory.color}10`,
+                              color: "#1F2937",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {target}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h5 className="text-sm text-[#111827]" style={{ fontWeight: 800 }}>
+                        진행 순서
+                      </h5>
+                      <div className="mt-3 space-y-2.5">
+                        {activeCategory.easySteps.map((step, idx) => (
+                          <div key={step.title} className="rounded-xl border border-[#E5E7EB] bg-white p-3.5">
+                            <div className="flex items-start gap-2.5">
+                              <span
+                                className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white text-xs"
+                                style={{ backgroundColor: activeCategory.color, fontWeight: 700 }}
+                              >
+                                {idx + 1}
+                              </span>
+                              <div>
+                                <p className="text-sm text-[#111827]" style={{ fontWeight: 700 }}>
+                                  {step.title}
+                                </p>
+                                <p className="mt-1 text-sm text-[#4B5563] leading-6">
+                                  {step.desc}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-[#D1FAE5] bg-[#ECFDF5] p-4">
+                      <p className="text-sm text-emerald-800 leading-6">
+                        <span style={{ fontWeight: 700 }}>기대 효과: </span>
+                        {activeCategory.easyBenefit}
+                      </p>
+                    </div>
+
+                    <div>
+                      <h5 className="text-sm text-[#111827]" style={{ fontWeight: 800 }}>
+                        주요 지원 항목
+                      </h5>
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {activeCategory.items.map((item) => (
+                          <div key={item} className="flex items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-sm text-[#374151]">
+                            <CheckCircle2 size={16} style={{ color: activeCategory.color }} />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setFlowStep(2)}
+                      className="w-full rounded-xl bg-[#1F6B78] px-4 py-3 text-white hover:bg-[#185A65] transition-colors cursor-pointer"
+                      style={{ fontWeight: 700 }}
+                    >
+                      다음 단계: 신청하기
+                    </button>
+                  </div>
+                )}
+
+                {flowStep === 2 && (
+                  <div className="space-y-5">
+                    <div className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4">
+                      <p className="text-sm text-[#475569]">
+                        신청은 로그인 상태와 조합원 여부를 확인한 뒤 진행됩니다.
+                      </p>
+                    </div>
+
+                    {isLoggedIn && isRegistered && isMember && (
+                      <div>
+                        <h4 className="text-[#111827] text-base" style={{ fontWeight: 700 }}>
+                          신청 사유를 선택해 주세요
+                        </h4>
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {activeCategory.applyReasons.map((reason) => {
+                            const selected = selectedReasonByCat[activeCategory.id] === reason;
+                            return (
+                              <button
+                                key={reason}
+                                onClick={() => setSelectedReasonByCat((prev) => ({ ...prev, [activeCategory.id]: reason }))}
+                                className={`rounded-lg border px-3 py-2.5 text-sm text-left transition-colors cursor-pointer ${
+                                  selected
+                                    ? "border-[#1F6B78] bg-[#1F6B78]/10 text-[#0F3E47]"
+                                    : "border-[#D1D5DB] bg-white text-[#374151] hover:border-[#94A3B8]"
+                                }`}
+                                style={{ fontWeight: selected ? 700 : 500 }}
+                              >
+                                {reason}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {appliedReasonByCat[activeCategory.id] && (
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
+                        신청 완료 사유: {appliedReasonByCat[activeCategory.id]}
+                      </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row gap-2.5">
+                      <button
+                        onClick={() => handleApply(activeCategory.id, activeCategory.title)}
+                        className="flex-1 rounded-xl bg-[#1F6B78] px-4 py-3 text-white hover:bg-[#185A65] transition-colors cursor-pointer"
+                        style={{ fontWeight: 700 }}
+                      >
+                        {isLoggedIn && isRegistered && isMember ? "서비스 신청 접수" : "상태 확인 후 진행"}
+                      </button>
+                      <button
+                        onClick={() => setFlowStep(1)}
+                        className="rounded-xl border border-[#D1D5DB] px-4 py-3 text-[#475569] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                        style={{ fontWeight: 600 }}
+                      >
+                        1단계 다시 보기
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

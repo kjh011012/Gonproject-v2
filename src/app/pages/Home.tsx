@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router";
 import { Hero } from "../components/Hero";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { IMG } from "../components/image-data";
 import { useSeniorMode } from "../components/SeniorModeContext";
 import {
   Heart,
-  Home as HomeIcon,
+  Car,
   Users,
   Shield,
   ArrowRight,
@@ -16,10 +17,7 @@ import {
   MapPin,
   Stethoscope,
   Activity,
-  BookOpen,
-  Link2,
   Leaf,
-  TreePine,
   PhoneCall,
   MessageCircle,
 } from "lucide-react";
@@ -114,61 +112,55 @@ const PROMISES_SENIOR = [
   { icon: Leaf, text: "밥(영양)과 숲(휴식)까지 건강으로", img: PROMISE_IMAGES[4] },
 ];
 
-/* ─── Section C: 서비스 카드 6개 ─── */
+/* ─── Section C: 서비스 카드 4개 ─── */
 const SERVICES = [
   {
+    id: "medical",
     icon: Stethoscope,
-    title: "1차 의료 중심 건강관리",
-    desc: "상담–진료–만성질환 관리까지, 끊기지 않게.",
-    badge: ["어르신", "만성질환"],
+    image: IMG.catMedical,
+    imageLabel: "(이미지) 찾아가는 의료 서비스",
+    title: "찾아가는 의료 서비스",
+    desc: "병원이 멀어도 기본 진료와 상담을 받을 수 있어요.",
+    points: ["방문 진료", "만성질환 관리"],
     status: "준비 중" as const,
-    seniorTitle: "동네 진료(주치의처럼)",
-    seniorDesc: "내 몸을 아는 진료.",
+    seniorTitle: "의사·간호사가 찾아가요",
+    seniorDesc: "멀리 가지 않아도 진료를 받을 수 있어요.",
   },
   {
-    icon: HomeIcon,
-    title: "방문진료(재택의료)",
-    desc: "거동이 어렵다면, 의료가 집으로 찾아갑니다.",
-    badge: ["거동 불편", "보호자 돌봄"],
+    id: "daily-care",
+    icon: Heart,
+    image: IMG.catDailyCare,
+    imageLabel: "(이미지) 생활 돌봄 서비스",
+    title: "생활 돌봄 서비스",
+    desc: "식사·안전·정서 지원으로 일상을 함께 챙겨요.",
+    points: ["생활 지원", "안전 확인"],
     status: "준비 중" as const,
-    seniorTitle: "집으로 오는 진료",
-    seniorDesc: "걷기 힘들면 집에서.",
+    seniorTitle: "집에서 돌봄을 받아요",
+    seniorDesc: "혼자 힘들지 않게 옆에서 도와드려요.",
   },
   {
-    icon: BookOpen,
-    title: "예방의학·건강교육",
-    desc: "아프기 전부터 배우고 실천하는 건강 습관.",
-    badge: ["누구나", "가족"],
+    id: "hospital-support",
+    icon: Car,
+    image: IMG.catHospitalSupport,
+    imageLabel: "(이미지) 병원 이용 지원 서비스",
+    title: "병원 이용 지원 서비스",
+    desc: "병원 예약부터 이동·동행까지 부담을 덜어드려요.",
+    points: ["병원 동행", "이동·예약 지원"],
     status: "준비 중" as const,
-    seniorTitle: "건강 모임",
-    seniorDesc: "같이 배우고, 같이 움직여요.",
+    seniorTitle: "병원 갈 때 같이 가요",
+    seniorDesc: "이동이 어려워도 이용할 수 있게 도와드려요.",
   },
   {
-    icon: Activity,
-    title: "재활(회복) 프로그램",
-    desc: "통증·기능 회복을 일상으로 이어가도록.",
-    badge: ["회복기", "시니어"],
+    id: "prevention",
+    icon: Leaf,
+    image: IMG.catPrevention,
+    imageLabel: "(이미지) 건강 예방 관리 서비스",
+    title: "건강 예방 관리",
+    desc: "아프기 전에 건강을 점검하고 생활 습관을 관리해요.",
+    points: ["건강 체크", "운동·식생활 안내"],
     status: "준비 중" as const,
-    seniorTitle: "돌봄 연결",
-    seniorDesc: "필요한 곳 찾아서 이어드려요.",
-  },
-  {
-    icon: Link2,
-    title: "복지·요양·돌봄 '연결'",
-    desc: "필요한 기관/서비스를 함께 찾아 연결합니다.",
-    badge: ["돌봄 필요", "독거"],
-    status: "준비 중" as const,
-    seniorTitle: "필요한 곳 연결",
-    seniorDesc: "혼자 두지 않아요.",
-  },
-  {
-    icon: TreePine,
-    title: "영양관리 + 산림복지 연계",
-    desc: "지역 자원과 결합한 '생활 속 건강' 프로그램.",
-    badge: ["어르신", "지역주민"],
-    status: "준비 중" as const,
-    seniorTitle: "밥과 숲으로 건강",
-    seniorDesc: "먹는 것, 쉬는 것까지.",
+    seniorTitle: "미리미리 건강을 챙겨요",
+    seniorDesc: "건강할 때부터 미리 관리해요.",
   },
 ];
 
@@ -322,7 +314,6 @@ export function HomePage() {
   const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const { isSenior } = useSeniorMode();
-  const [showAllServices, setShowAllServices] = useState(false);
   const [showAllFaq, setShowAllFaq] = useState(false);
 
   const problems = isSenior ? PROBLEMS_SENIOR : PROBLEMS_NORMAL;
@@ -332,10 +323,6 @@ export function HomePage() {
   const trustBadges = isSenior
     ? TRUST_BADGES_SENIOR
     : TRUST_BADGES_NORMAL;
-  const visibleServices =
-    isSenior && !showAllServices
-      ? SERVICES.slice(0, 4)
-      : SERVICES;
   const visibleFaq = showAllFaq
     ? FAQ_DATA
     : FAQ_DATA.slice(0, 6);
@@ -566,31 +553,37 @@ export function HomePage() {
                 : "진료만 하는 곳이 아니라, '필요한 돌봄을 연결하는 곳'입니다."}
             </h2>
           </div>
-          {!isSenior && (
-            <p className="text-center text-[#6B7280] mb-8 md:mb-14 text-sm">
-              아래 서비스는 운영 단계에 따라 제공 범위가 달라질
-              수 있습니다. (카드에 '운영 중/준비 중' 배지 표기)
-            </p>
-          )}
+          <p
+            className={`text-center text-[#6B7280] mb-8 md:mb-14 ${isSenior ? "text-[17px]" : "text-sm"}`}
+          >
+            {isSenior
+              ? "4가지 도움만 먼저 보여드릴게요. 필요한 항목을 눌러 자세히 보세요."
+              : "핵심 서비스 4가지만 먼저 확인하고, 자세한 내용은 서비스 페이지에서 보세요."}
+          </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleServices.map((s) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {SERVICES.map((s) => (
               <div
                 key={s.title}
                 className="bg-[#FAFAFA] rounded-2xl border border-[#E5E7EB] p-5 md:p-6 hover:shadow-md transition-shadow flex flex-col"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-11 h-11 rounded-lg bg-[#1F6B78]/10 flex items-center justify-center">
-                    <s.icon
-                      size={22}
-                      className="text-[#1F6B78]"
+                <div className="-mx-5 -mt-5 md:-mx-6 md:-mt-6 mb-4 relative">
+                  <div className="h-44 md:h-48 overflow-hidden rounded-t-2xl">
+                    <ImageWithFallback
+                      src={s.image}
+                      alt={s.imageLabel}
+                      className="w-full h-full object-cover"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#111827]/55 via-[#111827]/10 to-transparent" />
+                  </div>
+                  <div className="absolute top-3 left-3 w-11 h-11 rounded-lg bg-white/85 backdrop-blur-sm flex items-center justify-center border border-white/70">
+                    <s.icon size={22} className="text-[#1F6B78]" />
                   </div>
                   <span
-                    className={`px-2.5 py-1 rounded-full text-xs ${
+                    className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs ${
                       s.status === "운영 중"
-                        ? "bg-[#67B89A]/15 text-[#1F6B78]"
-                        : "bg-[#F2EBDD] text-[#6B7280]"
+                        ? "bg-[#67B89A] text-white"
+                        : "bg-white/90 text-[#6B7280]"
                     }`}
                     style={{ fontWeight: 600 }}
                   >
@@ -599,60 +592,54 @@ export function HomePage() {
                 </div>
                 <h3
                   className={`text-[#111827] mb-2 ${isSenior ? "text-[20px]" : "text-lg"}`}
-                  style={{ fontWeight: 600 }}
+                  style={{ fontWeight: 700 }}
                 >
                   {isSenior ? s.seniorTitle : s.title}
                 </h3>
                 <p
-                  className={`text-[#374151] leading-relaxed mb-4 flex-1 ${isSenior ? "text-[17px]" : "text-sm"}`}
+                  className={`text-[#374151] leading-relaxed mb-4 ${isSenior ? "text-[17px]" : "text-sm"}`}
                 >
                   {isSenior ? s.seniorDesc : s.desc}
                 </p>
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {s.badge.map((b) => (
+
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {s.points.map((point) => (
                     <span
-                      key={b}
-                      className="px-2 py-0.5 rounded bg-[#1F6B78]/8 text-[#1F6B78] text-xs"
-                      style={{ fontWeight: 500 }}
+                      key={point}
+                      className={`inline-flex items-center gap-1.5 rounded-full bg-[#1F6B78]/8 text-[#1F6B78] px-3 py-1 ${isSenior ? "text-[15px]" : "text-xs"}`}
+                      style={{ fontWeight: 600 }}
                     >
-                      {b}
+                      <CheckCircle2 size={14} />
+                      {point}
                     </span>
                   ))}
                 </div>
-                <div className="flex flex-col gap-2 sm:flex-row">
+
+                <div className="mt-auto">
                   <button
-                    onClick={() => navigate("/services")}
-                    className={`flex-1 py-2.5 min-h-[48px] rounded-lg bg-[#1F6B78] text-white text-sm hover:bg-[#185A65] transition-colors cursor-pointer active:scale-[0.98] ${isSenior ? "text-[16px]" : ""}`}
+                    onClick={() => navigate(`/services?cat=${s.id}`)}
+                    className={`w-full py-2.5 min-h-[48px] rounded-lg bg-[#1F6B78] text-white text-sm hover:bg-[#185A65] transition-colors cursor-pointer active:scale-[0.98] ${isSenior ? "text-[16px]" : ""}`}
                     style={{ fontWeight: 600 }}
                   >
-                    이용 방법 보기
-                  </button>
-                  <button
-                    onClick={() =>
-                      alert(`대표전화: ${V.대표전화}`)
-                    }
-                    className={`py-2.5 px-4 min-h-[48px] rounded-lg border border-[#E5E7EB] text-[#374151] text-sm hover:bg-gray-50 transition-colors cursor-pointer active:scale-[0.98] ${isSenior ? "text-[16px]" : ""}`}
-                    style={{ fontWeight: 500 }}
-                  >
-                    <Phone size={16} className="inline mr-1" />
-                    전화 문의
+                    서비스 자세히 보기
                   </button>
                 </div>
               </div>
             ))}
           </div>
 
-          {isSenior && !showAllServices && (
-            <div className="text-center mt-8">
-              <button
-                onClick={() => setShowAllServices(true)}
-                className="px-6 py-3 rounded-full border-2 border-[#1F6B78] text-[#1F6B78] hover:bg-[#1F6B78]/5 transition-colors cursor-pointer"
-                style={{ fontWeight: 600, fontSize: 18 }}
-              >
-                다른 서비스 더 보기
-              </button>
-            </div>
-          )}
+          <div className="mt-6 md:mt-8 text-center">
+            <button
+              onClick={() =>
+                alert(`대표전화: ${V.대표전화}`)
+              }
+              className={`px-6 py-3 min-h-[48px] rounded-full border border-[#E5E7EB] text-[#374151] hover:bg-gray-50 transition-colors cursor-pointer active:scale-[0.98] ${isSenior ? "text-[17px]" : "text-sm"}`}
+              style={{ fontWeight: 600 }}
+            >
+              <Phone size={16} className="inline mr-1.5" />
+              전화로 바로 문의하기
+            </button>
+          </div>
         </div>
       </section>
 

@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { Globe, Phone, MapPin, PhoneCall, ArrowRight } from "lucide-react";
-import logoImg from "figma:asset/f4694bdbad3c9ccbf0dc80f21c4e4f77783ad26f.png";
+import logoImg from "../../assets/f4694bdbad3c9ccbf0dc80f21c4e4f77783ad26f.png";
 import { useSeniorMode } from "./SeniorModeContext";
 
 const HERO_IMAGE =

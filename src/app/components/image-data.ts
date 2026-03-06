@@ -51,6 +51,9 @@ export const IMG = {
   /* Join 히어로 */
   joinHero: "https://images.unsplash.com/photo-1766066014237-00645c74e9c6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzbWlsaW5nJTIwZnJpZW5kbHklMjB3b21hbiUyMGhlYWRzZXQlMjBjYWxsJTIwY2VudGVyJTIwYnJpZ2h0fGVufDF8fHx8MTc3Mjc4MDU5MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
 
+  /* 문의/오시는길 히어로 */
+  inquiriesHero: "https://images.unsplash.com/photo-1766066014237-00645c74e9c6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzbWlsaW5nJTIwZnJpZW5kbHklMjB3b21hbiUyMGhlYWRzZXQlMjBjYWxsJTIwY2VudGVyJTIwYnJpZ2h0fGVufDF8fHx8MTc3Mjc4MDU5MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+
   /* 배경 */
   village: "https://images.unsplash.com/photo-1765028295071-4d6e6d8620b7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxrb3JlYW4lMjBydXJhbCUyMHZpbGxhZ2UlMjBjb3VudHJ5c2lkZSUyMG5hdHVyZSUyMHBlYWNlZnVsfGVufDF8fHx8MTc3MjcyMDQ2M3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
 
