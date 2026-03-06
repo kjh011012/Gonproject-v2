@@ -1,0 +1,70 @@
+/* ─── 이미지 우선 디자인용 이미지 URL 중앙 관리 ─── */
+
+export const IMG = {
+  /* About 대표 히어로 */
+  aboutHero: "https://images.unsplash.com/photo-1630251800800-cfc688e27a3b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxrb3JlYW4lMjBlZGVybHklMjB3YWxraW5nJTIwY29uc3VsdGF0aW9uJTIwd2FybXxlbnwxfHx8fDE3NzI3MjA0NTwfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+
+  /* Services 대표 히어로 */
+  servicesHero: "https://images.unsplash.com/photo-1664346732255-f815c891306c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxrb3JlYW4lMjB2aWxsYWdlJTIwZWxkZXJseSUyMGNhcmVnaXZlciUyMGhlbHBpbmd8ZW58MXx8fHwxNzcyNzg2MDQ4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+
+  /* 상황 타일 6종 (문제→해결 카드) */
+  solHomeVisit: "https://images.unsplash.com/photo-1544187702-067d81860901?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2N0b3IlMjBob21lJTIwdmlzaXQlMjBydXJhbCUyMGVsZGVybHklMjBwYXRpZW50fGVufDF8fHx8MTc3Mjc4NjIxMnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  solRecovery: "https://images.unsplash.com/photo-1762126242240-cafa01fb1351?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3NwaXRhbCUyMGRpc2NoYXJnZSUyMHJlY292ZXJ5JTIwZWxkZXJseSUyMG1vbml0b3Jpbmd8ZW58MXx8fHwxNzcyNzg2MjEyfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  solEscort: "https://images.unsplash.com/photo-1584289247071-4cd2a7648f54?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbGRlcmx5JTIwd2hlZWxjaGFpciUyMGhvc3BpdGFsJTIwdHJhbnNwb3J0JTIwYXNzaXN0YW5jZXxlbnwxfHx8fDE3NzI3ODYyMTd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  solLonelyCare: "https://images.unsplash.com/photo-1770822788455-f14be32b0d00?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYXJlZ2l2ZXIlMjB2aXNpdGluZyUyMGVsZGVybHklMjBob21lJTIwc2FmZXR5JTIwY2hlY2t8ZW58MXx8fHwxNzcyNzg2MjEzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  solHealthCheck: "https://images.unsplash.com/photo-1758691462413-b07dee2933fe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxibG9vZCUyMHByZXNzdXJlJTIwY2hlY2slMjBzZW5pb3IlMjBoZWFsdGglMjBzY3JlZW5pbmd8ZW58MXx8fHwxNzcyNzg2MjEzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  solIntegrated: "https://images.unsplash.com/photo-1722235623488-ae7639a2ffd8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxpbnRlZ3JhdGVkJTIwaGVhbHRoY2FyZSUyMHdlbGZhcmUlMjB0ZWFtd29yayUyMGNvb3JkaW5hdGlvbnxlbnwxfHx8fDE3NzI3ODYyMTR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+
+  /* 서비스 카테고리 4종 */
+  catMedical: "https://images.unsplash.com/photo-1761296787557-5797a6897297?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob21lJTIwdmlzaXQlMjBtZWRpY2FsJTIwZG9jdG9yJTIwcnVyYWwlMjBjb21tdW5pdHl8ZW58MXx8fHwxNzcyNzg2NTY2fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  catDailyCare: "https://images.unsplash.com/photo-1575467678930-c7acd65d6470?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbGRlcmx5JTIwZGFpbHklMjBjYXJlJTIwbWVhbCUyMHN1cHBvcnQlMjBjYXJlZ2l2ZXJ8ZW58MXx8fHwxNzcyNzg2NTY3fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  catHospitalSupport: "https://images.unsplash.com/photo-1754661656609-e53a3aa0417c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob3NwaXRhbCUyMHRyYW5zcG9ydCUyMHdoZWVsY2hhaXIlMjBlbGRlcmx5JTIwYXNzaXN0YW5jZXxlbnwxfHx8fDE3NzI3ODY1Njd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  catPrevention: "https://images.unsplash.com/photo-1645409229585-a8ce8c799e86?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzZW5pb3IlMjBoZWFsdGglMjBwcmV2ZW50aW9uJTIwZXhlcmNpc2UlMjB3YWxraW5nJTIwZ3JvdXB8ZW58MXx8fHwxNzcyNzg2NTY3fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+
+  /* (레거시) 상황 타일 - Services 페이지에서 사용 */
+  situationKnee: "https://images.unsplash.com/photo-1614774720186-8dcafb41c365?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbGRlcmx5JTIwa25lZSUyMHBhaW4lMjB3YWxraW5nJTIwZGlmZmljdWx0eSUyMHN0YWlyc3xlbnwxfHx8fDE3NzI3MjA0NTF8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  situationMedicine: "https://images.unsplash.com/photo-1771527188358-2384fe648969?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2luZSUyMHBpbGxzJTIwb3JnYW5pemVyJTIwZWxkZXJseSUyMG1hbmFnZW1lbnR8ZW58MXx8fHwxNzcyNzIwNDUxfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  situationLonely: "https://images.unsplash.com/photo-1642287341744-1c31bf392e0b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsb25lbHklMjBlZGVybHklMjBwZXJzb24JTIwc2l0dGluZyUyMHdhcm0lMjBsaWdodxlbnwxfHx8fDE3NzI3MjA0NTF8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  situationRehab: "https://images.unsplash.com/photo-1747302653826-42c6cd7295f2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbGRlcmx5JTIwcmVoYWJpbGl0YXRpb24lMjBzdHJldGNoaW5nJTIwZXhlcmNpc2UlMjBndWlkYW5jZXxlbnwxfHx8fDE3NzI3MjA0NTJ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  situationCareLink: "https://images.unsplash.com/photo-1765671778226-b2f158b07d08?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2NpYWwlMjB3b3JrZXIlMjBjb25zdWx0aW5nJTIwZG9jdW1lbnRzJTIwZWxkZXJseXxlbnwxfHx8fDE3NzI3MjA0NTJ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  situationPrevention: "https://images.unsplash.com/photo-1751152280397-9ac67d59dcc7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzZW5pb3IlMjB3YWxraW5nJTIwZ3JvdXAlMjBuYXR1cmUlMjB0cmFpbCUyMGZvcmVzdHxlbnwxfHx8fDE3NzI3MjA0NTZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+
+  /* 서비스 포스터 6종 */
+  serviceClinic: "https://images.unsplash.com/photo-1758691461935-202e2ef6b69f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2N0b3IlMjBleHBsYWaniaW5nJTIwcGF0aWVudCUyMGNsaW5pYyUyMGNvbnN1bHRhdGlvbnxlbnwxfHx8fDE3NzI3MjA0NTZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  serviceHomeVisit: "https://images.unsplash.com/photo-1770822788455-f14be32b0d00?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob21lJTIwdmlzaXQlMjBudXJzZSUyMGhlYWx0aGNhcmUlMjBlZGVybHklMjBoYW1lJTIwaG9tZXxlbnwxfHx8fDE3NzI3MjA0NTd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  serviceNursing: "https://images.unsplash.com/photo-1758204054878-813a52406b7a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxibG9vZCUyMHByZXNzdXJlJTIwY2hlY2slMjBudXJzaW5nJTIwaGVhbHRofGVufDF8fHx8MTc3MjcyMDQ1N3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  serviceRehab: "https://images.unsplash.com/photo-1747302653826-42c6cd7295f2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbGRlcmx5JTIwcmVoYWJpbGl0YXRpb24lMjBzdHJldGNoaW5nJTIwZXhlcmNpc2UlMjBndWlkYW5jZXxlbnwxfHx8fDE3NzI3MjA0NTJ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  serviceWalking: "https://images.unsplash.com/photo-1751152280397-9ac67d59dcc7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzZW5pb3IlMjB3YWxraW5nJTIwZ3JvdXAlMjBuYXR1cmUlMjB0cmFpbCUyMGZvcmVzdHxlbnwxfHx8fDE3NzI3MjA0NTZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  serviceCareLink: "https://images.unsplash.com/photo-1740818576269-2e6e20dbf7f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3Vuc2VsaW5nJTIwY29uc3VsdGF0aW9uJTIwY2FyaW5nJTIwcHJvZmVzc2lvbmFsfGVufDF8fHx8MTc3MjcyMDQ2MHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+
+  /* 스토리보드 3컷 */
+  storyPhone: "https://images.unsplash.com/photo-1766066014237-00645c74e9c6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzbWlsaW5nJTIwZnJpZW5kbHklMjB3b21hbiUyMGhlYWRzZXQlMjBjYWxsJTIwY2VudGVyJTIwYnJpZ2h0fGVufDF8fHx8MTc3Mjc4MDU5MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  storyConsult: "https://images.unsplash.com/photo-1740818576269-2e6e20dbf7f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb3Vuc2VsaW5nJTIwY29uc3VsdGF0aW9uJTIwY2FyaW5nJTIwcHJvZmVzc2lvbmFsfGVufDF8fHx8MTc3MjcyMDQ2MHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  storyConnect: "https://images.unsplash.com/photo-1770822788455-f14be32b0d00?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob21lJTIwdmlzaXQlMjBudXJzZSUyMGhlYWx0aGNhcmUlMjBlZGVybHklMjBoYW1lJTIwaG9tZXxlbnwxfHx8fDE3NzI3MjA0NTd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+
+  /* 신뢰 섹션 */
+  trustCommunity: "https://images.unsplash.com/photo-1751977979590-3554dd691c5e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb21tdW5pdHklMjBncm91cCUyMG1lZXRpbmclMjBlZGVybHklMjwY29vcGVyYXRpdmV8ZW58MXx8fHwxNzcyNzIwNDU4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+
+  /* 출자금(씨앗돈) */
+  seedMoney: "https://images.unsplash.com/photo-1656740839066-db82019b292b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwbGFudCUyMHNlZWRsaW5nJTIwZ3Jvd2luZyUyMGdyZWVuJTIwc3Byb3V0fGVufDF8fHx8MTc3MjcyMDQ1OHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+
+  /* Join 히어로 */
+  joinHero: "https://images.unsplash.com/photo-1766066014237-00645c74e9c6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzbWlsaW5nJTIwZnJpZW5kbHklMjB3b21hbiUyMGhlYWRzZXQlMjBjYWxsJTIwY2VudGVyJTIwYnJpZ2h0fGVufDF8fHx8MTc3Mjc4MDU5MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+
+  /* 배경 */
+  village: "https://images.unsplash.com/photo-1765028295071-4d6e6d8620b7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxrb3JlYW4lMjBydXJhbCUyMHZpbGxhZ2UlMjBjb3VudHJ5c2lkZSUyMG5hdHVyZSUyMHBlYWNlZnVsfGVufDF8fHx8MTc3MjcyMDQ2M3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+
+  /* ─── 소식/커뮤니티 ─── */
+  communityHero: "https://images.unsplash.com/photo-1558042194-a4ba5d22b58b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxrb3JlYW4lMjBjb21tdW5pdHklMjBnYXRoZXJpbmclMjBlZGVybHklMjwb3V0ZG9vciUyMGV2ZW50fGVufDF8fHx8MTc3Mjc3MjQ5MHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  communityNotice: "https://images.unsplash.com/photo-1696041757950-62e2c030283b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb21tdW5pdHklMjBidWxsZXRpbiUyMGJvYXJkJTIwYW5ub3VuY2VtZW50JTIwbWVnYXBob25lfGVufDF8fHx8MTc3Mjc3MjQ5MXww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  communityWalking: "https://images.unsplash.com/photo-1763631019224-07719a29f76e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzZW5pb3IlMjBoZWFsdGglMjB3YWxraW5nJTIwZ3JvdXAlMjBtb3JuaW5nJTIwZXhlcmNpc2V8ZW58MXx8fHwxNzcyNzcyNDkxfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  communityMedia: "https://images.unsplash.com/photo-1722684768315-11fc753354f6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuZXdzcGFwZXIlMjBwcmVzcyUyMGFydGljbGUlMjBtZWRpYSUyMGNvdmVyYWdlfGVufDF8fHx8MTc3Mjc3MjQ5Mnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  communityPhotos: "https://images.unsplash.com/photo-1722173205783-d602329f0743?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb21tdW5pdHklMjBwaG90byUyMGFsYnVtJTIwbWVtb3JpZXMlMjBzaGFyaW5nfGVufDF8fHx8MTc3Mjc3MjQ5Mnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  communityMeeting: "https://images.unsplash.com/photo-1758691736804-4e88c52ad58b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb29wZXJhdGl2ZSUyMG1lZXRpbmclMjBkaXNjdXNzaW9uJTIwdGVhbXdvcmt8ZW58MXx8fHwxNzcyNzcyNDkzfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  communityFestival: "https://images.unsplash.com/photo-1763735134657-194aed472245?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxydXJhbCUyMHZpbGxhZ2UlMjBzcHJpbmclMjBmZXN0aXZhbCUyMGNlbGVicmF0aW9ufGVufDF8fHx8MTc3Mjc3MjQ5M3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  communityEducation: "https://images.unsplash.com/photo-1646579886135-068c73800308?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGhjYXJlJTIwZWR1Y2F0aW9uJTIwY2xhc3MlMjBzZW1pbmFyJTIwbGVjdHVyZXxlbnwxfHx8fDE3NzI3NzI0OTR8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  communityYoga: "https://images.unsplash.com/photo-1763890965393-1cea435581ab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzZW5pb3IlMjB5b2dhJTIwc3RyZXRjaGluZyUyMGNsYXNzJTIwaW5kb29yJTIwd2FybXxlbnwxfHx8fDE3NzI3NzI0OTZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  communityCooking: "https://images.unsplash.com/photo-1659354218586-5f4a7bd8db61?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2b2x1bnRlZXIlMjBjb29raW5nJTIwZWxkZXJseSUyMGZvb2QlMjBzaGFyaW5nfGVufDF8fHx8MTc3Mjc3MjQ5N3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  communityGarden: "https://images.unsplash.com/photo-1621958206813-2e9c0441c5b0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxnYXJkZW4lMjBwbGFudGluZyUyMGNvbW11bml0eSUyMGVsZGVybHklMjBncmVlbnxlbnwxfHx8fDE3NzI3NzI0OTh8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  communityCheckup: "https://images.unsplash.com/photo-1758206523670-67343d3b27eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxibG9vZCUyMHByZXNzdXJlJTIwaGVhbHRoJTIwY2hlY2t1cCUyMHNjcmVlbmluZ3xlbnwxfHx8fDE3NzI3NzI0OTh8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+} as const;
