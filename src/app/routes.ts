@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createHashRouter } from "react-router";
 import { PublicLayout } from "./components/layouts/PublicLayout";
 import { AdminLayout } from "./components/layouts/AdminLayout";
 import { HomePage } from "./pages/Home";
@@ -38,7 +38,7 @@ import {
   AdminExport,
 } from "./pages/admin/AdminPlaceholder";
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: "/",
     Component: PublicLayout,
