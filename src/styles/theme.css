@@ -3,29 +3,30 @@
 :root {
   --font-size: 16px;
   --font-family: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', system-ui, sans-serif;
-  --background: #FAFAFA;
-  --foreground: #111827;
+  --font-serif: 'Noto Serif KR', Georgia, serif;
+  --background: #F7F2E8;
+  --foreground: #1F2623;
   --card: #ffffff;
-  --card-foreground: #111827;
+  --card-foreground: #1F2623;
   --popover: #ffffff;
-  --popover-foreground: #111827;
-  --primary: #1F6B78;
+  --popover-foreground: #1F2623;
+  --primary: #1F4B43;
   --primary-foreground: #ffffff;
-  --secondary: #67B89A;
-  --secondary-foreground: #111827;
-  --muted: #F0F2F5;
-  --muted-foreground: #374151;
-  --accent: #F2EBDD;
-  --accent-foreground: #111827;
+  --secondary: #6E958B;
+  --secondary-foreground: #1F2623;
+  --muted: #EAE1D3;
+  --muted-foreground: #4A5553;
+  --accent: #C87C5A;
+  --accent-foreground: #ffffff;
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
-  --border: #E5E7EB;
+  --border: #D6CCBC;
   --input: transparent;
-  --input-background: #F5F6F8;
+  --input-background: #F0EBE0;
   --switch-background: #cbced4;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #1F6B78;
+  --ring: #1F4B43;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -139,14 +140,6 @@
     font-family: var(--font-family);
   }
 
-  html,
-  body,
-  #root {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: hidden;
-  }
-
   h1 {
     font-size: var(--text-2xl);
     font-weight: var(--font-weight-medium);
@@ -201,5 +194,62 @@
   100% {
     background-position: 200% 0;
     opacity: 0;
+  }
+}
+
+/* ─── Senior Mode: 전역 큰 글자 + 넓은 간격 ─── */
+.senior-mode {
+  --font-size: 20px;
+}
+
+.senior-mode body {
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+  word-spacing: 0.05em;
+}
+
+/* 본문·단락 */
+.senior-mode p,
+.senior-mode li,
+.senior-mode span,
+.senior-mode label,
+.senior-mode td,
+.senior-mode th {
+  line-height: 1.85;
+}
+
+/* 제목 스케일업 */
+.senior-mode h1 { font-size: 2.2rem; line-height: 1.4; }
+.senior-mode h2 { font-size: 1.8rem; line-height: 1.4; }
+.senior-mode h3 { font-size: 1.5rem; line-height: 1.45; }
+.senior-mode h4 { font-size: 1.25rem; line-height: 1.5; }
+
+/* 버튼·링크 터치 타겟 확대 */
+.senior-mode button,
+.senior-mode a {
+  min-height: 44px;
+  line-height: 1.6;
+}
+
+/* 인풋 필드 */
+.senior-mode input,
+.senior-mode textarea,
+.senior-mode select {
+  font-size: 1.1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  min-height: 48px;
+}
+
+/* 간격 여유 */
+.senior-mode section {
+  padding-top: 3.5rem;
+  padding-bottom: 3.5rem;
+}
+
+@media (min-width: 768px) {
+  .senior-mode section {
+    padding-top: 5rem;
+    padding-bottom: 5rem;
   }
 }

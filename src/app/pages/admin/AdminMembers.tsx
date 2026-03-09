@@ -1,87 +1,200 @@
-import { useState } from "react";
-import { UserPlus, Download, Phone, Mail, MapPin, Clock, FileText, MessageSquare, ChevronRight, Bookmark } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Phone, ChevronRight, Loader2 } from "lucide-react";
 import { StatusBadge } from "../../components/admin/AdminBadge";
 import { AdminDetailPanel, DetailField, DetailTabs } from "../../components/admin/AdminDetailPanel";
-import { ConfirmModal } from "../../components/admin/AdminModal";
+import {
+  useAdminMembersQuery,
+  useUpdateMemberStatusMutation,
+} from "../../hooks/admin/useAdminQueries";
+import { adminApi } from "../../lib/api/admin";
 
-const MEMBERS = [
-  { id: "M-2024-0123", name: "홍길동", age: "1958년생", phone: "010-****-5678", phoneFull: "010-1234-5678", address: "횡성읍", status: "가입완료", joinDate: "2024-06-15", shares: 50000, lastService: "2026-02-28", memo: "정기 방문진료 대상" },
-  { id: "M-2024-0124", name: "김영희", age: "1962년생", phone: "010-****-2222", phoneFull: "010-1111-2222", address: "우천면", status: "가입완료", joinDate: "2024-07-20", shares: 100000, lastService: "2026-03-01", memo: "" },
-  { id: "M-2025-0001", name: "박수진", age: "1970년생", phone: "010-****-4444", phoneFull: "010-3333-4444", address: "횡성읍", status: "가입완료", joinDate: "2025-01-05", shares: 50000, lastService: "2026-02-15", memo: "건강교실 참여" },
-  { id: "M-2025-0045", name: "이철수", age: "1955년생", phone: "010-****-6666", phoneFull: "010-5555-6666", address: "갑천면", status: "가입신청", joinDate: "2025-06-10", shares: 0, lastService: "-", memo: "입금 확인 필요" },
-  { id: "M-2025-0046", name: "최미영", age: "1968년생", phone: "010-****-8888", phoneFull: "010-7777-8888", address: "공근면", status: "가입완료", joinDate: "2025-08-22", shares: 150000, lastService: "2026-03-04", memo: "" },
-  { id: "M-2026-0001", name: "정태호", age: "1950년생", phone: "010-****-0000", phoneFull: "010-9999-0000", address: "안흥면", status: "입금확인중", joinDate: "2026-01-03", shares: 0, lastService: "-", memo: "전화 상담 완료" },
-  { id: "M-2024-0050", name: "한지은", age: "1975년생", phone: "010-****-6789", phoneFull: "010-2345-6789", address: "횡성읍", status: "탈퇴", joinDate: "2024-09-15", shares: 0, lastService: "2025-12-20", memo: "환급 완료" },
-  { id: "M-2024-0088", name: "오상호", age: "1948년생", phone: "010-****-7890", phoneFull: "010-3456-7890", address: "청일면", status: "휴면", joinDate: "2024-03-10", shares: 50000, lastService: "2025-06-10", memo: "6개월 이상 미이용" },
-  { id: "M-2025-0099", name: "윤미래", age: "1965년생", phone: "010-****-1234", phoneFull: "010-4567-1234", address: "횡성읍", status: "가입완료", joinDate: "2025-11-20", shares: 50000, lastService: "2026-02-20", memo: "" },
-  { id: "M-2024-0033", name: "강민수", age: "1952년생", phone: "010-****-5555", phoneFull: "010-8888-5555", address: "우천면", status: "블랙리스트", joinDate: "2024-05-01", shares: 50000, lastService: "2025-08-15", memo: "반복 노쇼 3회" },
+type MemberItem = {
+  id: number;
+  memberNo: string;
+  name: string;
+  phone: string;
+  region: string | null;
+  status: string;
+  shareBalance: number;
+  joinedAt: string | null;
+  createdAt: string;
+};
+
+type MemberDetail = {
+  id: number;
+  memberNo: string;
+  name: string;
+  phone: string;
+  region: string | null;
+  status: string;
+  shareBalance: number;
+  memoSummary?: string | null;
+  statusHistory: Array<{
+    id: number;
+    fromStatus: string | null;
+    toStatus: string;
+    reason?: string | null;
+    createdAt: string;
+  }>;
+  notes: Array<{
+    id: number;
+    body: string;
+    isPrivate: boolean;
+    createdAt: string;
+  }>;
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  active: "가입완료",
+  dormant: "휴면",
+  withdrawal_pending: "탈퇴대기",
+  withdrawn: "탈퇴",
+  blacklisted: "블랙리스트",
+};
+
+const STATUS_FILTERS: Array<{ value: string; label: string }> = [
+  { value: "", label: "전체" },
+  { value: "active", label: "가입완료" },
+  { value: "dormant", label: "휴면" },
+  { value: "withdrawal_pending", label: "탈퇴대기" },
+  { value: "withdrawn", label: "탈퇴" },
+  { value: "blacklisted", label: "블랙리스트" },
 ];
 
-const STATUSES = ["전체", "가입완료", "가입신청", "입금확인중", "휴면", "탈퇴", "블랙리스트"];
-const AREAS = ["전체", "횡성읍", "우천면", "갑천면", "공근면", "안흥면", "청일면"];
+function statusLabel(status: string) {
+  return STATUS_LABELS[status] ?? status;
+}
 
-const HISTORY = [
-  { date: "2026-01-03", action: "가입신청 접수", by: "시스템" },
-  { date: "2026-01-04", action: "전화 상담 완료", by: "상담사 박OO" },
-  { date: "2026-01-05", action: "입금 확인 요청", by: "운영팀" },
-  { date: "2026-01-07", action: "입금 확인 완료 → 가입완료", by: "회계담당 김OO" },
-];
+function formatDate(value: string | null | undefined) {
+  if (!value) return "-";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "-";
+  return parsed.toLocaleDateString("ko-KR");
+}
 
 export function AdminMembers() {
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("전체");
-  const [areaFilter, setAreaFilter] = useState("전체");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [areaFilter, setAreaFilter] = useState("");
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detailTab, setDetailTab] = useState("개요");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [confirmModal, setConfirmModal] = useState(false);
-  const [confirmReason, setConfirmReason] = useState("");
+  const [detail, setDetail] = useState<MemberDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [nextStatus, setNextStatus] = useState("");
+  const [statusReason, setStatusReason] = useState("");
+  const [noteBody, setNoteBody] = useState("");
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
-  const filtered = MEMBERS.filter(
-    (m) =>
-      (statusFilter === "전체" || m.status === statusFilter) &&
-      (areaFilter === "전체" || m.address === areaFilter) &&
-      (search === "" || m.name.includes(search) || m.id.includes(search) || m.phone.includes(search))
-  );
+  const {
+    data,
+    loading,
+    error,
+    refetch,
+  } = useAdminMembersQuery({
+    page: 1,
+    pageSize: 100,
+    search: search || undefined,
+    status: statusFilter || undefined,
+    region: areaFilter || undefined,
+  });
 
-  const member = selectedId ? MEMBERS.find((m) => m.id === selectedId) : null;
+  const updateMemberStatus = useUpdateMemberStatusMutation();
+  const members = (data ?? []) as MemberItem[];
 
-  const toggleSelect = (id: string) => {
-    const next = new Set(selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelected(next);
-  };
+  const areas = useMemo(() => {
+    const uniq = Array.from(new Set(members.map((m) => m.region).filter(Boolean))) as string[];
+    return ["", ...uniq];
+  }, [members]);
+
+  async function loadDetail(memberId: number) {
+    setDetailLoading(true);
+    setDetailError(null);
+    try {
+      const res = await adminApi.memberDetail(memberId);
+      const payload = res.data as MemberDetail;
+      setDetail(payload);
+      setNextStatus(payload.status);
+    } catch (e) {
+      setDetail(null);
+      setDetailError(e instanceof Error ? e.message : "상세 정보를 불러오지 못했습니다.");
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (selectedId == null) {
+      setDetail(null);
+      setDetailError(null);
+      setActionMessage(null);
+      return;
+    }
+    void loadDetail(selectedId);
+  }, [selectedId]);
+
+  const selectedRow = selectedId == null ? null : members.find((m) => m.id === selectedId) ?? null;
+  const panelMember = detail ?? selectedRow;
+
+  async function handleSaveStatus() {
+    if (!selectedId || !nextStatus) return;
+    setSavingStatus(true);
+    setActionMessage(null);
+    try {
+      await updateMemberStatus(selectedId, nextStatus, statusReason || undefined);
+      await Promise.all([loadDetail(selectedId), refetch()]);
+      setStatusReason("");
+      setActionMessage("상태가 변경되었습니다.");
+    } catch (e) {
+      setActionMessage(e instanceof Error ? e.message : "상태 변경에 실패했습니다.");
+    } finally {
+      setSavingStatus(false);
+    }
+  }
+
+  async function handleAddNote() {
+    if (!selectedId || !noteBody.trim()) return;
+    setSavingNote(true);
+    setActionMessage(null);
+    try {
+      await adminApi.addMemberNote(selectedId, noteBody.trim(), true);
+      setNoteBody("");
+      await loadDetail(selectedId);
+      setActionMessage("내부 메모를 저장했습니다.");
+    } catch (e) {
+      setActionMessage(e instanceof Error ? e.message : "메모 저장에 실패했습니다.");
+    } finally {
+      setSavingNote(false);
+    }
+  }
 
   return (
     <div className="flex gap-6 h-full">
-      {/* Main */}
-      <div className={`flex-1 min-w-0 ${member ? "hidden xl:block" : ""}`}>
-        {/* Toolbar */}
+      <div className={`flex-1 min-w-0 ${panelMember ? "hidden xl:block" : ""}`}>
         <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
           <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
-            <div className="flex items-center gap-3 w-full lg:w-auto">
-              <div className="relative flex-1 lg:w-64">
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="이름, 조합원번호, 연락처..."
-                  className="w-full pl-4 pr-4 py-2 rounded-lg bg-[#F8F9FA] border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B78]/20"
-                />
-              </div>
+            <div className="relative flex-1 lg:w-64">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="이름, 조합원번호, 연락처..."
+                className="w-full pl-4 pr-4 py-2 rounded-lg bg-[#F8F9FA] border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B78]/20"
+              />
             </div>
 
             <div className="flex flex-wrap gap-1.5">
-              {STATUSES.map((s) => (
+              {STATUS_FILTERS.map((s) => (
                 <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
+                  key={s.value || "all"}
+                  onClick={() => setStatusFilter(s.value)}
                   className={`px-2.5 py-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
-                    statusFilter === s ? "bg-[#1F6B78] text-white" : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                    statusFilter === s.value ? "bg-[#1F6B78] text-white" : "bg-gray-50 text-gray-500 hover:bg-gray-100"
                   }`}
-                  style={{ fontWeight: statusFilter === s ? 600 : 400 }}
+                  style={{ fontWeight: statusFilter === s.value ? 600 : 400 }}
                 >
-                  {s}
+                  {s.label}
                 </button>
               ))}
             </div>
@@ -92,82 +205,58 @@ export function AdminMembers() {
                 onChange={(e) => setAreaFilter(e.target.value)}
                 className="px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-xs text-gray-600"
               >
-                {AREAS.map((a) => <option key={a} value={a}>{a === "전체" ? "지역 전체" : a}</option>)}
+                <option value="">지역 전체</option>
+                {areas.filter(Boolean).map((area) => (
+                  <option key={area} value={area}>
+                    {area}
+                  </option>
+                ))}
               </select>
-              <button className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 flex items-center gap-1 cursor-pointer">
-                <Download size={13} /> 내보내기
-              </button>
-              <button className="px-3 py-1.5 rounded-lg bg-[#1F6B78] text-white text-xs flex items-center gap-1 cursor-pointer" style={{ fontWeight: 600 }}>
-                <UserPlus size={13} /> 조합원 등록
-              </button>
             </div>
           </div>
         </div>
 
-        {/* Bulk actions */}
-        {selected.size > 0 && (
-          <div className="bg-[#1F6B78] rounded-xl px-4 py-2.5 mb-4 flex items-center gap-3 text-white text-sm">
-            <span style={{ fontWeight: 600 }}>{selected.size}건 선택</span>
-            <div className="flex gap-2 ml-auto">
-              <button className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-xs cursor-pointer">상태 변경</button>
-              <button className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-xs cursor-pointer">메모 추가</button>
-              <button className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-xs cursor-pointer">내보내기</button>
-              <button onClick={() => setSelected(new Set())} className="px-3 py-1.5 rounded-lg bg-white/10 text-xs cursor-pointer">해제</button>
-            </div>
-          </div>
-        )}
-
-        {/* Table */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-[#F8F9FA]">
                 <tr>
-                  <th className="w-10 p-3">
-                    <input
-                      type="checkbox"
-                      onChange={() => {
-                        if (selected.size === filtered.length) setSelected(new Set());
-                        else setSelected(new Set(filtered.map((m) => m.id)));
-                      }}
-                      checked={filtered.length > 0 && selected.size === filtered.length}
-                      className="accent-[#1F6B78] cursor-pointer"
-                    />
-                  </th>
                   <th className="text-left px-4 py-3 text-xs text-gray-400" style={{ fontWeight: 600 }}>조합원</th>
                   <th className="text-left px-4 py-3 text-xs text-gray-400 hidden md:table-cell" style={{ fontWeight: 600 }}>연락처</th>
                   <th className="text-left px-4 py-3 text-xs text-gray-400 hidden lg:table-cell" style={{ fontWeight: 600 }}>지역</th>
                   <th className="text-left px-4 py-3 text-xs text-gray-400" style={{ fontWeight: 600 }}>상태</th>
                   <th className="text-left px-4 py-3 text-xs text-gray-400 hidden lg:table-cell" style={{ fontWeight: 600 }}>가입일</th>
                   <th className="text-left px-4 py-3 text-xs text-gray-400 hidden xl:table-cell" style={{ fontWeight: 600 }}>출자금</th>
-                  <th className="text-left px-4 py-3 text-xs text-gray-400 hidden xl:table-cell" style={{ fontWeight: 600 }}>최근 서비스</th>
                   <th className="w-10"></th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {loading && (
                   <tr>
-                    <td colSpan={9} className="text-center py-16 text-gray-400">
-                      <p className="text-sm">조건에 맞는 항목이 없습니다</p>
-                      <p className="text-xs mt-1">필터를 해제하거나 검색어를 바꿔보세요</p>
-                    </td>
+                    <td colSpan={7} className="text-center py-12 text-gray-400 text-sm">조합원 목록을 불러오는 중...</td>
                   </tr>
-                ) : filtered.map((m) => (
+                )}
+                {!loading && error && (
+                  <tr>
+                    <td colSpan={7} className="text-center py-12 text-red-500 text-sm">{error}</td>
+                  </tr>
+                )}
+                {!loading && !error && members.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="text-center py-12 text-gray-400 text-sm">조건에 맞는 조합원이 없습니다.</td>
+                  </tr>
+                )}
+                {!loading && !error && members.map((m) => (
                   <tr
                     key={m.id}
-                    onClick={() => { setSelectedId(m.id); setDetailTab("개요"); }}
+                    onClick={() => {
+                      setSelectedId(m.id);
+                      setDetailTab("개요");
+                    }}
                     className={`border-t border-gray-50 cursor-pointer transition-colors ${
                       selectedId === m.id ? "bg-[#1F6B78]/5" : "hover:bg-[#F8F9FA]/50"
                     }`}
                   >
-                    <td className="w-10 p-3" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selected.has(m.id)}
-                        onChange={() => toggleSelect(m.id)}
-                        className="accent-[#1F6B78] cursor-pointer"
-                      />
-                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-[#1F6B78]/10 flex items-center justify-center text-xs text-[#1F6B78] shrink-0" style={{ fontWeight: 600 }}>
@@ -175,16 +264,15 @@ export function AdminMembers() {
                         </div>
                         <div>
                           <p className="text-[#111827]" style={{ fontWeight: 500 }}>{m.name}</p>
-                          <p className="text-xs text-gray-400">{m.id} · {m.age}</p>
+                          <p className="text-xs text-gray-400">{m.memberNo}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{m.phone}</td>
-                    <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{m.address}</td>
-                    <td className="px-4 py-3"><StatusBadge status={m.status} /></td>
-                    <td className="px-4 py-3 text-gray-400 hidden lg:table-cell">{m.joinDate}</td>
-                    <td className="px-4 py-3 text-gray-500 hidden xl:table-cell">{m.shares > 0 ? `${m.shares.toLocaleString()}원` : "-"}</td>
-                    <td className="px-4 py-3 text-gray-400 hidden xl:table-cell">{m.lastService}</td>
+                    <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{m.region || "-"}</td>
+                    <td className="px-4 py-3"><StatusBadge status={statusLabel(m.status)} /></td>
+                    <td className="px-4 py-3 text-gray-400 hidden lg:table-cell">{formatDate(m.joinedAt)}</td>
+                    <td className="px-4 py-3 text-gray-500 hidden xl:table-cell">{Number(m.shareBalance || 0).toLocaleString()}원</td>
                     <td className="px-4 py-3">
                       <ChevronRight size={14} className="text-gray-300" />
                     </td>
@@ -194,158 +282,143 @@ export function AdminMembers() {
             </table>
           </div>
           <div className="px-4 py-3 border-t border-gray-100 text-xs text-gray-400">
-            전체 {filtered.length}명
+            현재 페이지 {members.length}명
           </div>
         </div>
       </div>
 
-      {/* Detail Panel */}
-      {member && (
-        <AdminDetailPanel
-          title="조합원 상세"
-          onClose={() => setSelectedId(null)}
-        >
-          {/* Header */}
+      {panelMember && (
+        <AdminDetailPanel title="조합원 상세" onClose={() => setSelectedId(null)}>
+          {detailLoading && (
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Loader2 size={14} className="animate-spin" /> 상세 정보를 불러오는 중...
+            </div>
+          )}
+
+          {!detailLoading && detailError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+              {detailError}
+            </div>
+          )}
+
           <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
             <div className="w-12 h-12 rounded-full bg-[#1F6B78]/10 flex items-center justify-center text-lg text-[#1F6B78]" style={{ fontWeight: 700 }}>
-              {member.name[0]}
+              {panelMember.name[0]}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <span className="text-base text-[#111827]" style={{ fontWeight: 700 }}>{member.name}</span>
-                <StatusBadge status={member.status} />
+                <span className="text-base text-[#111827]" style={{ fontWeight: 700 }}>{panelMember.name}</span>
+                <StatusBadge status={statusLabel(panelMember.status)} />
               </div>
-              <p className="text-xs text-gray-400">{member.id} · {member.age}</p>
+              <p className="text-xs text-gray-400">{panelMember.memberNo}</p>
             </div>
           </div>
 
-          {/* Quick actions */}
           <div className="flex gap-2">
-            <button className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#1F6B78] text-white text-xs cursor-pointer" style={{ fontWeight: 600 }}>
-              <Phone size={13} /> 전화
-            </button>
-            <button className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 cursor-pointer hover:bg-gray-50">
-              <MessageSquare size={13} /> 문의 생성
-            </button>
-            <button className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 cursor-pointer hover:bg-gray-50">
-              <FileText size={13} /> 대리 신청
-            </button>
+            <a
+              href={`tel:${panelMember.phone.replace(/[^0-9+]/g, "")}`}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#1F6B78] text-white text-xs cursor-pointer"
+              style={{ fontWeight: 600 }}
+            >
+              <Phone size={13} /> 전화 걸기
+            </a>
           </div>
 
-          {/* Tabs */}
-          <DetailTabs
-            tabs={["개요", "히스토리", "출자금", "서비스 이력", "내부 메모"]}
-            active={detailTab}
-            onChange={setDetailTab}
-          />
+          <DetailTabs tabs={["개요", "히스토리", "내부 메모"]} active={detailTab} onChange={setDetailTab} />
 
           {detailTab === "개요" && (
             <div className="space-y-4">
               <DetailField label="연락처">
-                <p className="text-sm text-[#374151]">{member.phoneFull}</p>
-                <p className="text-[10px] text-gray-400">권한이 있어야 전체 정보가 표시됩니다</p>
+                <p className="text-sm text-[#374151]">{panelMember.phone}</p>
               </DetailField>
-              <DetailField label="주소">
-                <p className="text-sm text-[#374151]">강원특별자치도 횡성군 {member.address}</p>
+              <DetailField label="지역">
+                <p className="text-sm text-[#374151]">{panelMember.region || "-"}</p>
               </DetailField>
-              <DetailField label="출자금">
-                <p className="text-sm text-[#374151]">{member.shares > 0 ? `${member.shares.toLocaleString()}원` : "미납"}</p>
+              <DetailField label="출자금 잔액">
+                <p className="text-sm text-[#374151]">{Number(panelMember.shareBalance || 0).toLocaleString()}원</p>
               </DetailField>
               <DetailField label="상태 변경">
-                <select className="w-full px-3 py-2 rounded-lg bg-[#F8F9FA] border border-gray-200 text-sm">
-                  {STATUSES.filter((s) => s !== "전체").map((s) => (
-                    <option key={s} selected={s === member.status}>{s}</option>
+                <select
+                  value={nextStatus}
+                  onChange={(e) => setNextStatus(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-[#F8F9FA] border border-gray-200 text-sm"
+                >
+                  {STATUS_FILTERS.filter((s) => s.value !== "").map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
                   ))}
                 </select>
               </DetailField>
-              <div className="pt-2 space-y-2">
-                <button className="w-full px-4 py-2.5 rounded-lg bg-[#1F6B78] text-white text-sm cursor-pointer" style={{ fontWeight: 600 }}>
-                  저장
-                </button>
-                <button
-                  onClick={() => setConfirmModal(true)}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-500 cursor-pointer hover:bg-gray-50 flex items-center justify-center gap-1.5"
-                >
-                  블랙리스트 처리
-                </button>
-              </div>
+              <DetailField label="변경 사유 (선택)">
+                <input
+                  value={statusReason}
+                  onChange={(e) => setStatusReason(e.target.value)}
+                  placeholder="예: 장기 미이용으로 휴면 전환"
+                  className="w-full px-3 py-2 rounded-lg bg-[#F8F9FA] border border-gray-200 text-sm"
+                />
+              </DetailField>
+              <button
+                onClick={() => void handleSaveStatus()}
+                disabled={savingStatus || !nextStatus}
+                className="w-full px-4 py-2.5 rounded-lg bg-[#1F6B78] text-white text-sm cursor-pointer disabled:opacity-60"
+                style={{ fontWeight: 600 }}
+              >
+                {savingStatus ? "저장 중..." : "상태 저장"}
+              </button>
             </div>
           )}
 
           {detailTab === "히스토리" && (
             <div className="space-y-3">
-              {HISTORY.map((h, i) => (
-                <div key={i} className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className="w-2 h-2 rounded-full bg-[#1F6B78] mt-1.5" />
-                    {i < HISTORY.length - 1 && <div className="w-px flex-1 bg-gray-200 mt-1" />}
-                  </div>
-                  <div className="pb-3">
-                    <p className="text-sm text-[#374151]" style={{ fontWeight: 500 }}>{h.action}</p>
-                    <p className="text-xs text-gray-400">{h.date} · {h.by}</p>
-                  </div>
+              {detail?.statusHistory && detail.statusHistory.length > 0 ? detail.statusHistory.map((h) => (
+                <div key={h.id} className="rounded-lg border border-gray-100 bg-[#F8F9FA] px-3 py-2">
+                  <p className="text-sm text-[#374151]" style={{ fontWeight: 500 }}>
+                    {h.fromStatus ? `${statusLabel(h.fromStatus)} → ` : ""}
+                    {statusLabel(h.toStatus)}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">{formatDate(h.createdAt)} {h.reason ? `· ${h.reason}` : ""}</p>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {detailTab === "출자금" && (
-            <div className="space-y-3">
-              {member.shares > 0 ? (
-                <div className="p-3 rounded-lg bg-[#F8F9FA]">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">출자금 총액</span>
-                    <span className="text-[#111827]" style={{ fontWeight: 600 }}>{member.shares.toLocaleString()}원</span>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400 text-center py-4">출자금 내역이 없습니다</p>
-              )}
-            </div>
-          )}
-
-          {detailTab === "서비스 이력" && (
-            <div className="text-sm text-gray-400 text-center py-8">
-              {member.lastService !== "-" ? (
-                <p>최근 서비스: {member.lastService}</p>
-              ) : (
-                <p>서비스 이용 내역이 없습니다</p>
+              )) : (
+                <p className="text-sm text-gray-400">변경 이력이 없습니다.</p>
               )}
             </div>
           )}
 
           {detailTab === "내부 메모" && (
             <div className="space-y-3">
-              {member.memo && (
-                <div className="p-3 rounded-lg bg-[#F2EBDD]/50 text-sm text-[#7A6C55]">
-                  {member.memo}
+              {detail?.notes && detail.notes.length > 0 ? detail.notes.map((note) => (
+                <div key={note.id} className="rounded-lg border border-gray-100 bg-[#F8F9FA] px-3 py-2">
+                  <p className="text-sm text-[#374151] whitespace-pre-wrap">{note.body}</p>
+                  <p className="text-xs text-gray-400 mt-1">{formatDate(note.createdAt)}</p>
                 </div>
+              )) : (
+                <p className="text-sm text-gray-400">등록된 메모가 없습니다.</p>
               )}
+
               <textarea
-                placeholder="내부 메모를 입력하세요... (고객에게 보이지 않음)"
-                rows={3}
-                className="w-full px-3 py-2 rounded-lg bg-[#F8F9FA] border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#1F6B78]/20"
+                value={noteBody}
+                onChange={(e) => setNoteBody(e.target.value)}
+                rows={4}
+                placeholder="내부 메모를 입력하세요 (고객에게 노출되지 않음)"
+                className="w-full px-3 py-2 rounded-lg bg-[#F8F9FA] border border-gray-200 text-sm resize-none"
               />
-              <button className="px-4 py-2 rounded-lg bg-[#1F6B78] text-white text-xs cursor-pointer" style={{ fontWeight: 600 }}>
-                메모 저장
+              <button
+                onClick={() => void handleAddNote()}
+                disabled={savingNote || !noteBody.trim()}
+                className="w-full px-4 py-2 rounded-lg bg-[#1F6B78] text-white text-sm cursor-pointer disabled:opacity-60"
+                style={{ fontWeight: 600 }}
+              >
+                {savingNote ? "저장 중..." : "메모 저장"}
               </button>
+            </div>
+          )}
+
+          {actionMessage && (
+            <div className="rounded-lg bg-[#F8F9FA] px-3 py-2 text-sm text-[#374151]">
+              {actionMessage}
             </div>
           )}
         </AdminDetailPanel>
       )}
-
-      {/* Blacklist Confirm Modal */}
-      <ConfirmModal
-        open={confirmModal}
-        onClose={() => { setConfirmModal(false); setConfirmReason(""); }}
-        onConfirm={() => { setConfirmModal(false); setConfirmReason(""); }}
-        title="블랙리스트 처리"
-        message="블랙리스트 처리 사유를 입력해 주세요. 처리 시 서비스 신청 제한, 커뮤니티 참여 제한이 적용됩니다."
-        confirmLabel="블랙리스트 처리"
-        requireReason
-        reason={confirmReason}
-        onReasonChange={setConfirmReason}
-      />
     </div>
   );
 }

@@ -9,7 +9,8 @@ import {
 /* ─── 공통 치환 변수 (확정 시 여기만 수정) ─── */
 export const V = {
   조합명: "강원농산어촌의료사회적협동조합",
-  조합명_짧게: "G온돌봄",
+  조합명_짧게: "강원농산어촌의료사협",
+  조합명_영문: "Gangwon Rural Community Healthcare Social Cooperative",
   대표전화: "추후 개통예정",
   카카오채널: "추후 개설예정",
   주소: "추후 게시예정",
@@ -20,6 +21,29 @@ export const V = {
   가입소요시간: "3분",
 };
 
+/* ─── 어르신 모드 텍스트 헬퍼 ─── */
+/** 어르신 모드일 때 쉬운 설명으로 치환 */
+export function st(normal: string, senior: string, isSenior?: boolean): string {
+  return isSenior ? senior : normal;
+}
+
+/* ─── 컬러 시스템 ─── */
+export const C = {
+  primary: "#1F4B43",
+  primaryLight: "#2A6359",
+  secondary: "#6E958B",
+  cream: "#F7F2E8",
+  sand: "#EAE1D3",
+  terracotta: "#C87C5A",
+  charcoal: "#1F2623",
+  teal: "#5B8F8B",
+  text: "#1F2623",
+  textSub: "#4A5553",
+  textMuted: "#7A8584",
+  border: "#D6CCBC",
+  white: "#FFFFFF",
+};
+
 /* ─── SummaryBox (10초 요약) ─── */
 interface SummaryBoxProps {
   title?: string;
@@ -28,7 +52,7 @@ interface SummaryBoxProps {
   isSenior?: boolean;
 }
 export function SummaryBox({
-  title = "한 줄로 말하면",
+  title = "한 줄로 말한다면",
   items,
   badges,
   isSenior,
@@ -36,16 +60,16 @@ export function SummaryBox({
   return (
     <div className="relative overflow-hidden rounded-2xl bg-white border border-[#E5E7EB] shadow-sm">
       {/* 상단 컬러 바 */}
-      <div className="h-1 w-full bg-gradient-to-r from-[#1F6B78] via-[#67B89A] to-[#F2EBDD]" />
+      <div className="h-1 w-full bg-gradient-to-r from-[#1F4B43] via-[#6E958B] to-[#F7F2E8]" />
 
       <div className={isSenior ? "p-6 md:p-8" : "p-5 md:p-7"}>
         {/* 헤더 */}
         <div className="flex items-center gap-2.5 mb-5 md:mb-6">
-          <div className="w-9 h-9 rounded-lg bg-[#1F6B78]/8 flex items-center justify-center">
-            <Zap size={18} className="text-[#1F6B78]" />
+          <div className="w-9 h-9 rounded-lg bg-[#1F4B43]/8 flex items-center justify-center">
+            <Zap size={18} className="text-[#1F4B43]" />
           </div>
           <h3
-            className={`text-[#1F6B78] ${isSenior ? "text-[20px] md:text-[22px]" : "text-base md:text-lg"}`}
+            className={`text-[#1F4B43] ${isSenior ? "text-[20px] md:text-[22px]" : "text-base md:text-lg"}`}
             style={{ fontWeight: 700 }}
           >
             {title}
@@ -61,7 +85,7 @@ export function SummaryBox({
             >
               {/* 넘버링 */}
               <span
-                className={`shrink-0 w-6 h-6 rounded-full bg-[#1F6B78] text-white flex items-center justify-center text-[11px] mt-0.5`}
+                className={`shrink-0 w-6 h-6 rounded-full bg-[#1F4B43] text-white flex items-center justify-center text-[11px] mt-0.5`}
                 style={{ fontWeight: 700 }}
               >
                 {i + 1}
@@ -81,10 +105,10 @@ export function SummaryBox({
             {badges.map((b) => (
               <span
                 key={b}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F2EBDD]/60 text-[#1F6B78] border border-[#F2EBDD] ${isSenior ? "text-[15px]" : "text-xs"}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F7F2E8]/60 text-[#1F4B43] border border-[#EAE1D3] ${isSenior ? "text-[15px]" : "text-xs"}`}
                 style={{ fontWeight: 600 }}
               >
-                <CheckCircle2 size={12} className="text-[#67B89A]" />
+                <CheckCircle2 size={12} className="text-[#6E958B]" />
                 {b}
               </span>
             ))}
@@ -109,15 +133,15 @@ export function TrustCards({
       {items.map((item, i) => (
         <div
           key={i}
-          className={`rounded-2xl border border-[#E5E7EB] bg-white ${isSenior ? "p-6" : "p-5"} flex items-start gap-3`}
+          className={`rounded-2xl border border-[#D6CCBC]/30 bg-white ${isSenior ? "p-6" : "p-5"} flex items-start gap-3`}
         >
-          <div className="w-8 h-8 rounded-full bg-[#67B89A]/15 flex items-center justify-center shrink-0 mt-0.5">
-            <span className="text-[#67B89A] text-sm">
+          <div className="w-8 h-8 rounded-full bg-[#6E958B]/15 flex items-center justify-center shrink-0 mt-0.5">
+            <span className="text-[#6E958B] text-sm">
               &#x2714;
             </span>
           </div>
           <p
-            className={`text-[#374151] ${isSenior ? "text-[18px] leading-[1.7]" : "text-sm leading-relaxed"}`}
+            className={`text-[#4A5553] ${isSenior ? "text-[18px] leading-[1.7]" : "text-sm leading-relaxed"}`}
           >
             {item}
           </p>
@@ -147,7 +171,7 @@ export function ScenarioCards({
         <button
           key={i}
           onClick={item.onClick}
-          className={`text-left rounded-2xl border border-[#E5E7EB] bg-white hover:shadow-md hover:border-[#67B89A]/40 transition-all cursor-pointer ${isSenior ? "p-6" : "p-5"}`}
+          className={`text-left rounded-2xl border border-[#D6CCBC]/30 bg-white hover:shadow-md hover:border-[#6E958B]/40 transition-all cursor-pointer ${isSenior ? "p-6" : "p-5"}`}
         >
           <div
             className="text-2xl mb-3"
@@ -156,14 +180,14 @@ export function ScenarioCards({
             }}
           />
           <p
-            className={`text-[#111827] ${isSenior ? "text-[18px] leading-[1.6]" : "text-sm leading-relaxed"}`}
+            className={`text-[#1F2623] ${isSenior ? "text-[18px] leading-[1.6]" : "text-sm leading-relaxed"}`}
             style={{ fontWeight: 500 }}
           >
             {item.text}
           </p>
           <div className="flex gap-2 mt-3">
             <span
-              className={`text-[#1F6B78] ${isSenior ? "text-[14px]" : "text-xs"}`}
+              className={`text-[#1F4B43] ${isSenior ? "text-[14px]" : "text-xs"}`}
               style={{ fontWeight: 600 }}
             >
               상담받기 &rarr;
@@ -262,13 +286,13 @@ export function StepperVisual({
         <div key={i} className="flex-1 flex items-start gap-4">
           <div className="relative flex flex-col items-center">
             <div
-              className={`rounded-full bg-[#1F6B78] text-white flex items-center justify-center shrink-0 ${isSenior ? "w-14 h-14 text-[22px]" : "w-10 h-10 text-base"}`}
+              className={`rounded-full bg-[#1F4B43] text-white flex items-center justify-center shrink-0 ${isSenior ? "w-14 h-14 text-[22px]" : "w-10 h-10 text-base"}`}
               style={{ fontWeight: 800 }}
             >
               {i + 1}
             </div>
             {i < steps.length - 1 && (
-              <div className="w-[2px] h-8 bg-[#1F6B78]/20 md:hidden" />
+              <div className="w-[2px] h-8 bg-[#1F4B43]/20 md:hidden" />
             )}
           </div>
           <div className="flex-1 pb-6 md:pb-0">
@@ -310,7 +334,7 @@ export function CTASection({
       {cards.map((c, i) => (
         <div
           key={i}
-          className={`rounded-2xl border border-[#E5E7EB] bg-white text-center ${isSenior ? "p-8" : "p-6"}`}
+          className={`rounded-2xl border border-[#D6CCBC]/30 bg-white text-center ${isSenior ? "p-8" : "p-6"}`}
         >
           <div
             className="text-3xl mb-3"
@@ -331,7 +355,7 @@ export function CTASection({
           )}
           <button
             onClick={c.onClick}
-            className={`w-full py-3 rounded-xl bg-[#1F6B78] text-white hover:bg-[#185A65] transition-colors cursor-pointer ${isSenior ? "min-h-[56px] text-[17px]" : "text-sm"}`}
+            className={`w-full py-3 rounded-xl bg-[#1F4B43] text-white hover:bg-[#2A6359] transition-colors cursor-pointer ${isSenior ? "min-h-[56px] text-[17px]" : "text-sm"}`}
             style={{ fontWeight: 600 }}
           >
             {c.buttonLabel}
@@ -390,7 +414,7 @@ export function SectionTitle({
       </h2>
       {sub && (
         <p
-          className={`mt-3 text-[#6B7280] ${isSenior ? "text-[18px]" : ""} leading-relaxed`}
+          className={`mt-3 text-[#7A8584] ${isSenior ? "text-[18px]" : ""} leading-relaxed`}
         >
           {sub}
         </p>
@@ -412,8 +436,8 @@ export function PhoneButton({
 }: PhoneButtonProps) {
   const base =
     variant === "primary"
-      ? "bg-[#67B89A] text-white hover:bg-[#5AA889]"
-      : "border border-[#E5E7EB] text-[#374151] hover:bg-gray-50";
+      ? "bg-[#6E958B] text-white hover:bg-[#5B8F8B]"
+      : "border border-[#D6CCBC]/40 text-[#4A5553] hover:bg-[#F7F2E8]";
   return (
     <button
       onClick={() => alert(`대표전화: ${V.대표전화}`)}
@@ -451,7 +475,7 @@ export function ServiceDetailBlock({
     <div className="space-y-8">
       <button
         onClick={onBack}
-        className="text-[#1F6B78] text-sm cursor-pointer hover:underline"
+        className="text-[#1F4B43] text-sm cursor-pointer hover:underline"
         style={{ fontWeight: 500 }}
       >
         &larr; 돌아가기
@@ -466,7 +490,7 @@ export function ServiceDetailBlock({
       {/* 체크리스트 */}
       <div>
         <h4
-          className={`text-[#1F6B78] mb-3 ${isSenior ? "text-[18px]" : "text-sm"}`}
+          className={`text-[#1F4B43] mb-3 ${isSenior ? "text-[18px]" : "text-sm"}`}
           style={{ fontWeight: 700 }}
         >
           &#x2705; 우리가 해드리는 것
@@ -476,7 +500,7 @@ export function ServiceDetailBlock({
             <div key={i} className="flex items-start gap-2">
               <CheckCircle2
                 size={isSenior ? 20 : 16}
-                className="text-[#67B89A] shrink-0 mt-0.5"
+                className="text-[#6E958B] shrink-0 mt-0.5"
               />
               <span
                 className={`text-[#374151] ${isSenior ? "text-[18px]" : "text-sm"}`}
@@ -491,7 +515,7 @@ export function ServiceDetailBlock({
       {/* 단계 */}
       <div>
         <h4
-          className={`text-[#1F6B78] mb-3 ${isSenior ? "text-[18px]" : "text-sm"}`}
+          className={`text-[#1F4B43] mb-3 ${isSenior ? "text-[18px]" : "text-sm"}`}
           style={{ fontWeight: 700 }}
         >
           &#x1F3AF; 이렇게 시작해요
@@ -509,7 +533,7 @@ export function ServiceDetailBlock({
       {preparations && preparations.length > 0 && (
         <div>
           <h4
-            className={`text-[#1F6B78] mb-3 ${isSenior ? "text-[18px]" : "text-sm"}`}
+            className={`text-[#1F4B43] mb-3 ${isSenior ? "text-[18px]" : "text-sm"}`}
             style={{ fontWeight: 700 }}
           >
             &#x1F4CB; 준비할 것
@@ -529,10 +553,10 @@ export function ServiceDetailBlock({
 
       {/* 비용 */}
       <div
-        className={`rounded-xl bg-[#F2EBDD]/50 border border-[#F2EBDD] ${isSenior ? "p-5" : "p-4"}`}
+        className={`rounded-xl bg-[#F7F2E8]/50 border border-[#EAE1D3] ${isSenior ? "p-5" : "p-4"}`}
       >
         <p
-          className={`text-[#374151] ${isSenior ? "text-[17px]" : "text-sm"}`}
+          className={`text-[#4A5553] ${isSenior ? "text-[17px]" : "text-sm"}`}
         >
           <span style={{ fontWeight: 600 }}>
             &#x1F4B0; 비용 안내:
@@ -550,7 +574,7 @@ export function ServiceDetailBlock({
               "상담 남기기 기능은 추후 Supabase 연동 시 활성화됩니다.",
             )
           }
-          className={`w-full sm:w-auto px-5 py-3 rounded-full bg-[#1F6B78] text-white hover:bg-[#185A65] transition-colors cursor-pointer active:scale-[0.98] ${isSenior ? "min-h-[56px] text-[18px]" : "min-h-[48px] text-sm"}`}
+          className={`w-full sm:w-auto px-5 py-3 rounded-full bg-[#1F4B43] text-white hover:bg-[#2A6359] transition-colors cursor-pointer active:scale-[0.98] ${isSenior ? "min-h-[56px] text-[18px]" : "min-h-[48px] text-sm"}`}
           style={{ fontWeight: 600 }}
         >
           상담 남기기

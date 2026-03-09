@@ -5,6 +5,7 @@ import {
   ArrowRight, CheckCircle2, AlertTriangle, Clock, ChevronRight, TrendingUp
 } from "lucide-react";
 import { StatusBadge } from "../../components/admin/AdminBadge";
+import { useDashboardSummaryQuery } from "../../hooks/admin/useAdminQueries";
 
 /* ─── Mock Data ─── */
 const KPI_CARDS = [
@@ -73,11 +74,20 @@ const SHORTCUTS = [
 ];
 
 export function AdminDashboard() {
+  const { data: summary } = useDashboardSummaryQuery();
+  const kpiCards = KPI_CARDS.map((kpi) => {
+    if (!summary) return kpi;
+    if (kpi.label === "가입 승인 대기") return { ...kpi, value: summary.applicationsPending };
+    if (kpi.label === "입금 미매칭") return { ...kpi, value: summary.unmatchedTransactions };
+    if (kpi.label === "답변대기 문의") return { ...kpi, value: summary.inquiriesPending };
+    return kpi;
+  });
+
   return (
     <div className="space-y-6 max-w-[1400px]">
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-        {KPI_CARDS.map((kpi) => {
+        {kpiCards.map((kpi) => {
           const Icon = kpi.icon;
           return (
             <Link

@@ -1,1261 +1,1023 @@
-import { useNavigate } from "react-router";
-import { Hero } from "../components/Hero";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import { IMG } from "../components/image-data";
-import { useSeniorMode } from "../components/SeniorModeContext";
+import { V } from "../components/shared";
+import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router";
+import { motion, AnimatePresence } from "motion/react";
 import {
-  Heart,
-  Car,
-  Users,
-  Shield,
   ArrowRight,
-  CheckCircle2,
-  Star,
+  Heart,
+  Users,
   ChevronDown,
+  ChevronRight as ChevronRightIcon,
+  Shield,
   Phone,
-  Mail,
-  MapPin,
-  Stethoscope,
-  Activity,
-  Leaf,
+  Clock,
   PhoneCall,
-  MessageCircle,
+  Activity,
 } from "lucide-react";
-import { useState } from "react";
+import { useSeniorMode } from "../components/SeniorModeContext";
+import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { QuickMenuSection } from "../components/QuickMenuSection";
+import { HOME_QUICK_MENU_ITEMS } from "../data/homeQuickMenu";
+import { NOTICES, PRESS } from "./Community";
 
-/* ─── 치환 변수 ─── */
-const V = {
-  조합명: "강원농산어촌의료사회적협동조합",
-  조합명_짧게: "G온돌봄",
-  대표전화: "추후 개통예정",
-  카카오채널: "추후개설예정",
-  출자금_최저: "50,000원 이상(정관 기준)",
-  출자금_예시선택: ["5만원", "10만원", "직접입력"],
-  가입소요시간: "1분",
+/* ─── Images ─── */
+const IMG = {
+  hero1:
+    "https://images.unsplash.com/photo-1754810940745-25668d27581e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxrb3JlYW4lMjBtb3VudGFpbiUyMHZhbGxleSUyMHN1bnJpc2UlMjBwZWFjZWZ1bHxlbnwxfHx8fDE3NzI5NDcyMDZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  hero2:
+    "https://images.unsplash.com/photo-1758691461990-03b49d969495?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2N0b3IlMjBwYXRpZW50JTIwY29uc3VsdGF0aW9uJTIwdHJ1c3QlMjBjYXJpbmd8ZW58MXx8fHwxNzcyOTQ3MjA1fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  hero3:
+    "https://images.unsplash.com/photo-1770822788455-f14be32b0d00?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob21lJTIwbnVyc2UlMjB2aXNpdCUyMGVsZGVybHklMjBjYXJlJTIwZ2VudGxlfGVufDF8fHx8MTc3Mjk0NzIwNnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  village:
+    "https://images.unsplash.com/photo-1765510103179-0c2f628d2ff2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxrb3JlYW4lMjBydXJhbCUyMHZpbGxhZ2UlMjBtb3VudGFpbiUyMGNvbW11bml0eSUyMGdhdGhlcmluZyUyMHdhcm18ZW58MXx8fHwxNzcyODk0Mzk0fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  homeVisit:
+    "https://images.unsplash.com/photo-1770822788455-f14be32b0d00?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbGRlcmx5JTIwY2FyZSUyMGhvbWUlMjB2aXNpdCUyMGRvY3RvciUyMGNvbnN1bHRhdGlvbiUyMHdhcm18ZW58MXx8fHwxNzcyODk0Mzk0fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  forest:
+    "https://images.unsplash.com/photo-1712718503955-87933d7a330c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxrb3JlYW4lMjBmb3Jlc3QlMjBoZWFsaW5nJTIwbmF0dXJlJTIwd2VsbG5lc3MlMjB0cmFpbCUyMGdyZWVufGVufDF8fHx8MTc3Mjg5NDM5NHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  community:
+    "https://images.unsplash.com/photo-1758798471100-a98fc12bc76c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb21tdW5pdHklMjBoZWFsdGglMjB3ZWxsbmVzcyUyMGdhdGhlcmluZyUyMG91dGRvb3J8ZW58MXx8fHwxNzcyOTQ3MjA2fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  elderly:
+    "https://images.unsplash.com/photo-1552666146-a8b42692780a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzZW5pb3IlMjBlbGRlcmx5JTIwd2Fsa2luZyUyMHBhcmslMjBzdW5yaXNlJTIwcGVhY2VmdWx8ZW58MXx8fHwxNzcyODk0Mzk1fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  caregiver:
+    "https://images.unsplash.com/photo-1765896387387-0538bc9f997e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxudXJzZSUyMGNhcmVnaXZlciUyMGVsZGVybHklMjBob21lJTIwY2FyZSUyMGdlbnRsZXxlbnwxfHx8fDE3NzI4OTQzOTZ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  volunteer:
+    "https://images.unsplash.com/photo-1733388972592-ec1da2ddc432?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2b2x1bnRlZXIlMjBjb21tdW5pdHklMjBnYXJkZW4lMjB0ZWFtd29yayUyMG5hdHVyZXxlbnwxfHx8fDE3NzI4OTQzOTd8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  donate:
+    "https://images.unsplash.com/photo-1697665387559-253e7a645e96?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb25hdGlvbiUyMGNoYXJpdHklMjBoYW5kcyUyMGhlYXJ0JTIwd2FybSUyMGxpZ2h0fGVufDF8fHx8MTc3Mjg5NDQwMHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  clinic:
+    "https://images.unsplash.com/photo-1758691463333-c79215e8bc3b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGV0aG9zY29wZSUyMGRvY3RvciUyMHBhdGllbnQlMjB0cnVzdCUyMGNvbnN1bHRhdGlvbnxlbnwxfHx8fDE3NzI4OTQ0MDF8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+  team: "https://images.unsplash.com/photo-1653508311277-1ecf6ee52c5e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWRpY2FsJTIwdGVhbSUyMHByb2Zlc3Npb25hbCUyMGhvc3BpdGFsJTIwZ3JvdXB8ZW58MXx8fHwxNzcyOTQ3MjA3fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
 };
 
-/* ─── Colors ─── */
-const C = {
-  primary: "#1F6B78",
-  secondary: "#67B89A",
-  accent: "#F2EBDD",
-  text: "#111827",
-  textSub: "#374151",
-  textMuted: "#6B7280",
-  border: "#E5E7EB",
-  white: "#FFFFFF",
-  bg: "#FAFAFA",
+/* ─── Helpers ─── */
+const fadeUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, ease: "easeOut" },
+  },
 };
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12 } },
+};
+const QUICK_MENU_REVEAL_START = 88;
+const QUICK_MENU_REVEAL_DISTANCE = 140;
 
-/* ─── Section A: 문제 공감 3카드 ─── */
-const PROBLEMS_NORMAL = [
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function useCustomInView(margin = "-80px") {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          obs.disconnect();
+        }
+      },
+      { rootMargin: margin },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [margin]);
+  return { ref, inView };
+}
+
+function AnimSection({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const { ref, inView } = useCustomInView("-80px");
+  return (
+    <motion.div
+      ref={ref}
+      initial="hidden"
+      animate={inView ? "visible" : "hidden"}
+      variants={stagger}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function CountUp({
+  end,
+  suffix = "",
+  duration = 2000,
+}: {
+  end: number;
+  suffix?: string;
+  duration?: number;
+}) {
+  const [count, setCount] = useState(0);
+  const { ref, inView } = useCustomInView("-40px");
+
+  useEffect(() => {
+    if (!inView) return;
+    let start = 0;
+    const step = Math.ceil(end / (duration / 16));
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= end) {
+        setCount(end);
+        clearInterval(timer);
+      } else {
+        setCount(start);
+      }
+    }, 16);
+    return () => clearInterval(timer);
+  }, [inView, end, duration]);
+
+  return (
+    <span ref={ref as any}>
+      {count.toLocaleString()}
+      {suffix}
+    </span>
+  );
+}
+
+/* ─── Hero slides ─── */
+const HERO_SLIDES = [
   {
-    icon: MapPin,
-    title: "병원이 멀어서",
-    desc: "이동·예약·대기가 부담이면 료 시기가 늦어지기 쉽습니다.",
-    img: "https://images.unsplash.com/photo-1620790647593-b3a6916c7d60?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxydXJhbCUyMGVsZGVybHklMjBwYXRpZW50JTIwd29ycmllZCUyMGhvc3BpdGFsJTIwZGlzdGFuY2V8ZW58MXx8fHwxNzcyNzEyMzg4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+    image: IMG.hero1,
+    badge: "",
+    title: "함께 돌보고\n함께 건강해지는\n농산어촌 건강 공동체",
+    sub: "의료, 돌봄, 건강활동이 이어지는 지역 기반 협동조합. 주민이 주인이 되어 만드는 비영리 건강 공동체입니다.",
+    seniorTitle: "우리 동네에서\n건강하게\n살 수 있어요",
+    seniorSub:
+      "아프면 의사 선생님이 찾아오고, 간호사 선생님이 집에서 돌봐드려요. 동네 주민들이 함께 만든 건강 모임이에요.",
   },
   {
-    icon: Heart,
-    title: "혼자 아프면 더 불안해서",
-    desc: '독거·고령일수록 "누가 연결해주는가"가 건강의 차이를 만듭니다.',
-    img: "https://images.unsplash.com/photo-1762126242240-cafa01fb1351?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxlbGRlcmx5JTIwbG9uZWx5JTIwbGl2aW5nJTIwYWxvbmUlMjB3b3JyaWVkJTIwaGVhbHRofGVufDF8fHx8MTc3MjcxMjM4OHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+    image: IMG.hero2,
+    badge: "찾아가는 의료 서비스",
+    title: "어디서든\n건강할 권리를\n지켜드립니다",
+    sub: "거동이 어려워도, 병원이 멀어도 의료진이 직접 찾아갑니다. 밝음의원과 재택의료센터가 함께합니다.",
+    seniorTitle: "병원에 못 가셔도\n의사 선생님이\n집으로 와요",
+    seniorSub:
+      "걸어서 병원에 가기 힘드셔도 걱정 마세요. 의사 선생님과 간호사 선생님이 직접 댁으로 찾아갑니다.",
   },
   {
-    icon: Activity,
-    title: "치료만으로는 부족해서",
-    desc: "예방·재활·돌봄이 이어져야 다시 일상이 가능합니다.",
-    img: "https://images.unsplash.com/photo-1588645849503-b33cc6a20317?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob21lJTIwdmlzaXQlMjBkb2N0b3IlMjBlbGRlcmx5JTIwY2FyZSUyMHdhcm18ZW58MXx8fHwxNzcyNzEyMzg5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+    image: IMG.hero3,
+    badge: "통합돌봄 시스템",
+    title: "의료와 돌봄이\n끊기지 않는\n케어 네트워크",
+    sub: "진료부터 간호, 재활, 돌봄까지 한 곳에서 연결됩니다. 퇴원 후에도 안심할 수 있는 시스템입니다.",
+    seniorTitle: "진료도, 간호도\n한 곳에서\n다 해드려요",
+    seniorSub:
+      "병원 진료, 가정 간호, 건강 관리를 한 번에 받으실 수 있어요. 퇴원 후에도 계속 돌봐드립니다.",
   },
 ];
 
-const PROBLEMS_SENIOR = [
+/* ─── Daily stories ─── */
+const DAILY_STORIES = [
   {
-    icon: MapPin,
-    title: "멀어서 힘들요",
-    desc: "왔다 갔다가 큰일이죠.",
+    title: "봄나들이 산책 모임 첫 날",
+    excerpt:
+      "오늘 처음 산책 모임에 참여하신 김 어르신의 환한 미소.",
+    image: IMG.elderly,
+    date: "2026.03.05",
   },
   {
-    icon: Heart,
-    title: "혼자면 더 걱정돼요",
-    desc: "누가 옆에서 도와주면 마음이 놓입니다.",
+    title: "밝음의원 건강교실 현장",
+    excerpt:
+      "혈압 관리 강좌에 30여 명의 조합원이 참여했습니다.",
+    image: IMG.community,
+    date: "2026.03.02",
   },
   {
-    icon: Activity,
-    title: "치료만 하면 끝이 아니에요",
-    desc: "회복하고, 다시 일상으로 돌아가야 해요.",
-  },
-];
-
-/* ─── Section B: 5가지 약속 ─── */
-const PROMISE_IMAGES = [
-  "https://images.unsplash.com/photo-1708758308011-ed8f5e3b4ca3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxLb3JlYW4lMjBydXJhbCUyMGNsaW5pYyUyMGhlYWx0aGNhcmUlMjBhY2Nlc3N8ZW58MXx8fHwxNzcyNzY0MTI5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  "https://images.unsplash.com/photo-1550058905-c91bce5e0bf5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxLb3JlYW4lMjBlbGRlcmx5JTIwY2FyZSUyMGNvbW11bml0eSUyMHN1cHBvcnR8ZW58MXx8fHwxNzcyNzY0MTI5fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  "https://images.unsplash.com/photo-1615462696310-09736533dbb8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxBc2lhbiUyMGRvY3RvciUyMHN0ZXRob3Njb3BlJTIwbWVkaWNhbCUyMGNoZWNrdXB8ZW58MXx8fHwxNzcyNzY0MTM3fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  "https://images.unsplash.com/photo-1770236597507-cd06a6b64091?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxLb3JlYW4lMjB2aWxsYWdlJTIwY29tbXVuaXR5JTIwZ2F0aGVyaW5nJTIwcGVvcGxlfGVufDF8fHx8MTc3Mjc2NDEzM3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-  "https://images.unsplash.com/photo-1766025065806-0ed92891692d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxLb3JlYW4lMjBmb3Jlc3QlMjB3ZWxsbmVzcyUyMG5hdHVyZSUyMGZhcm0lMjBmb29kfGVufDF8fHx8MTc3Mjc2NDEzMHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-];
-
-const PROMISES_NORMAL = [
-  { icon: Stethoscope, text: "건강권 보장과 의료 접근성 향상", img: PROMISE_IMAGES[0] },
-  { icon: Heart, text: "노인·장애인·외국인 등 취약계층 통합 돌봄", img: PROMISE_IMAGES[1] },
-  { icon: Activity, text: "1차 의료 중심 지속가능 건강관리", img: PROMISE_IMAGES[2] },
-  { icon: Users, text: "조합원 참여와 민주적 운영", img: PROMISE_IMAGES[3] },
-  { icon: Leaf, text: "지역 농임산물 영양관리 + 산림복지 연계 돌봄", img: PROMISE_IMAGES[4] },
-];
-
-const PROMISES_SENIOR = [
-  { icon: Stethoscope, text: "병원 가기 어려운 분 돕기", img: PROMISE_IMAGES[0] },
-  { icon: Heart, text: "어르신 돌봄 연결하기", img: PROMISE_IMAGES[1] },
-  { icon: Activity, text: "꾸준히 건강 챙기기", img: PROMISE_IMAGES[2] },
-  { icon: Users, text: "우리끼리 투명하게 운영하기", img: PROMISE_IMAGES[3] },
-  { icon: Leaf, text: "밥(영양)과 숲(휴식)까지 건강으로", img: PROMISE_IMAGES[4] },
-];
-
-/* ─── Section C: 서비스 카드 4개 ─── */
-const SERVICES = [
-  {
-    id: "medical",
-    icon: Stethoscope,
-    image: IMG.catMedical,
-    imageLabel: "(이미지) 찾아가는 의료 서비스",
-    title: "찾아가는 의료 서비스",
-    desc: "병원이 멀어도 기본 진료와 상담을 받을 수 있어요.",
-    points: ["방문 진료", "만성질환 관리"],
-    status: "준비 중" as const,
-    seniorTitle: "의사·간호사가 찾아가요",
-    seniorDesc: "멀리 가지 않아도 진료를 받을 수 있어요.",
-  },
-  {
-    id: "daily-care",
-    icon: Heart,
-    image: IMG.catDailyCare,
-    imageLabel: "(이미지) 생활 돌봄 서비스",
-    title: "생활 돌봄 서비스",
-    desc: "식사·안전·정서 지원으로 일상을 함께 챙겨요.",
-    points: ["생활 지원", "안전 확인"],
-    status: "준비 중" as const,
-    seniorTitle: "집에서 돌봄을 받아요",
-    seniorDesc: "혼자 힘들지 않게 옆에서 도와드려요.",
-  },
-  {
-    id: "hospital-support",
-    icon: Car,
-    image: IMG.catHospitalSupport,
-    imageLabel: "(이미지) 병원 이용 지원 서비스",
-    title: "병원 이용 지원 서비스",
-    desc: "병원 예약부터 이동·동행까지 부담을 덜어드려요.",
-    points: ["병원 동행", "이동·예약 지원"],
-    status: "준비 중" as const,
-    seniorTitle: "병원 갈 때 같이 가요",
-    seniorDesc: "이동이 어려워도 이용할 수 있게 도와드려요.",
-  },
-  {
-    id: "prevention",
-    icon: Leaf,
-    image: IMG.catPrevention,
-    imageLabel: "(이미지) 건강 예방 관리 서비스",
-    title: "건강 예방 관리",
-    desc: "아프기 전에 건강을 점검하고 생활 습관을 관리해요.",
-    points: ["건강 체크", "운동·식생활 안내"],
-    status: "준비 중" as const,
-    seniorTitle: "미리미리 건강을 챙겨요",
-    seniorDesc: "건강할 때부터 미리 관리해요.",
+    title: "겨울철 방문진료 이야기",
+    excerpt:
+      "눈 덮인 마을, 의료진이 직접 찾아간 따뜻한 이야기.",
+    image: IMG.village,
+    date: "2026.02.25",
   },
 ];
 
-/* ─── Section D: 이용 3단계 ─── */
-const STEPS_NORMAL = [
-  {
-    step: "01",
-    title: "상담 요청(전화/온라인)",
-    desc: "현재 상황을 듣고, 필요한 방향을 함께 정리합니다.",
-  },
-  {
-    step: "02",
-    title: "필요한 서비스 연결",
-    desc: "진료·방문·교육·돌봄 등 가능한 선택지를 안내합니다.",
-  },
-  {
-    step: "03",
-    title: "꾸준한 건강관리",
-    desc: "일회성이 아니라, 생활 속에서 이어지도록 돕습니다.",
-  },
-];
-
-const STEPS_SENIOR = [
-  { step: "01", title: "전화 주세요.", desc: "" },
-  { step: "02", title: "필요한 도움을 같이 정해요.", desc: "" },
-  { step: "03", title: "꾸준히 챙겨드려요.", desc: "" },
-];
-
-/* ─── Section E: 조합원 혜택 ─── */
-const BENEFITS_NORMAL = [
-  "내 생활에 맞춘 건강관리 안내를 더 쉽게 받습니다.",
-  "건강교육/모임/예방 프로그램 소식을 우선적으로 받습니다.",
-  "지역 돌봄 네트워크와의 연결 창구가 생깁니다.",
-  "조합 운영(총회/의견/참여)에 함께할 수 있습니다.",
-];
-
-const BENEFITS_SENIOR = [
-  "건강 소식을 먼저 받습니다.",
-  "모임/강좌에 참여할 수 있어요.",
-  "필요한 돌봄을 연결받기 쉬워요.",
-  "내 의견이 운영에 반영돼요.",
-  "동네가 함께 건강해져요.",
-];
-
-/* ─── Section H: FAQ 10개 (듀얼 모드 답변) ─── */
+/* ─── FAQ ─── */
 const FAQ_DATA = [
   {
-    q: "강원 농산어촌 의료 사회적 협동조합이 뭐예요?",
-    a_normal:
-      "강원 농산어촌 의료 사회적 협동조합은 지역사회에 필요한 일을 하기 위해 주민이 함께 만들고 운영하는 비영리 조직입니다. 이익을 나누기보다(배당 목적이 아니라) 지역의 건강·돌봄 같은 공익 목적을 위해 운영됩니다.",
-    a_senior:
-      "우리 동네 사람들이 힘을 모아, 함께 운영하는 '비영리 조합'이에요.",
-  },
-  {
-    q: `${V.조합명}은 어떤 일을 하려고 하나요?`,
-    a_normal:
-      "농산어촌의 의료 공백과 돌봄 불균형을 줄이기 위해, 건강권과 의료 접근성 향상, 취약계층 통합 돌봄, 1차 의료 중심 건강관리, 영양·산림복지 연계 등 '지역 맞춤형 통합 모델'을 지향합니다.",
-    a_senior: "진료도 챙기고, 돌봄도 이어드리는 일을 해요.",
-  },
-  {
-    q: "조합원 가입하면 뭐가 달라지나요?",
-    a_normal:
-      "조합원은 조합의 주인으로서 소식/프로그램 안내를 우선적으로 받고, 건강교육·모임 참여, 의견 제안·총회 참여 등 운영에 함께할 수 있습니다. (혜택 범위는 운영 정책에 따라 공지됩니다.)",
-    a_senior:
-      "소식을 먼저 받고, 필요한 도움을 더 쉽게 연결받을 수 있어요.",
+    q: "조합에 가입하면 뭐가 달라지나요?",
+    a: "조합원은 건강 프로그램 안내를 우선 받고, 총회 참여 등 운영에 함께할 수 있습니다.",
   },
   {
     q: "출자금은 꼭 내야 하나요?",
-    a_normal:
-      "출자금은 조합의 운영 기반(공동 자본)입니다. 금액과 방식은 정관과 운영 정책에 따르며, 가입 화면에서 안내합니다.",
-    a_senior:
-      "네, 조합을 함께 운영하는 '씨앗돈'이라서 필요해요.",
+    a: "출자금은 조합의 공동 운영 기반입니다. 최소 5만 원부터 가능합니다.",
   },
   {
-    q: "출자금은 나중에 돌려받을 수 있나요?",
-    a_normal:
-      "탈퇴 시에는 정관과 법에서 정한 절차에 따라 출자금 환급이 진행됩니다. 환급 시점/방법은 조합 규정과 총회 승인 등 절차에 따라 달라질 수 있어 FAQ/정관 요약에서 확인하실 수 있습니다.",
-    a_senior: "탈퇴하면, 절차에 따라 돌려받습니다.",
+    q: "거동이 불편해도 이용할 수 있나요?",
+    a: "방문진료와 재택의료 서비스로 집에서도 의료를 받으실 수 있습니다.",
   },
   {
-    q: "제가 거동이 불편한데, 이용할 수 있나요?",
-    a_normal:
-      "거동이 불편한 경우 방문 형태(재택/방문) 또는 돌봄 연계 등 가능한 옵션을 상담을 통해 안내합니다. 제공 범위는 운영 단계에 따라 달라질 수 있습니다.",
-    a_senior: "네. 먼저 전화 주세요. 가능한 방법을 찾아드려요.",
-  },
-  {
-    q: "병원비가 무조건 할인되나요?",
-    a_normal:
-      "조합원 혜택은 '정책과 운영 범위'에 따라 달라질 수 있습니다. 홈페이지 공지/가입 안내에서 현재 적용되는 범위를 투명하게 안내하는 방식이 신뢰에 가장 중요합니다.",
-    a_senior:
-      "무조건은 아니에요. 가능한 항목이 있으면 안내해 드려요.",
-  },
-  {
-    q: "가족도 함께 도움을 받을 수 있나요?",
-    a_normal:
-      "가족 적용 범위는 조합 운영 정책(정관/내규)에 따라 달라질 수 있습니다. 가입 안내에서 기준을 명확히 안내하고, 문의 시 개별 안내합니다.",
-    a_senior:
-      "가능한 범위가 있어요. 상황을 보고 안내해 드려요.",
-  },
-  {
-    q: "개인정보는 왜 필요해요?",
-    a_normal:
-      "가입 처리와 상담 연락을 위해 최소한의 정보만 받습니다. 수집 항목/보관 기간/이용 목적은 동의 화면에서 요약과 함께 제공하고, 자세한 내용은 개인정보처리방침에서 확인할 수 있습니다.",
-    a_senior: "연락드리고, 가입 확인하려고 필요해요.",
-  },
-  {
-    q: "공지나 모임 소식은 어디서 보나요?",
-    a_normal:
-      "홈의 '소식/커뮤니티'와 커뮤니티 페이지에서 공지/모임/자료를 확인할 수 있습니다. 어르신모드에서는 글자를 크게, 필독 공지를 맨 위에 고정해 제공합니다.",
-    a_senior: "홈 화면에 '필독 공지'가 있어요.",
+    q: "가족도 함께 혜택을 받나요?",
+    a: "가족 적용 범위는 조합 운영 정책에 따릅니다. 상담 시 안내드립니다.",
   },
 ];
 
-/* ─── 공지 미리보기 ─── */
-const NOTICES_PREVIEW = [
-  {
-    cat: "필독",
-    title: "2026년 상반기 조합원 정기총회 안내",
-    date: "2026.02.20",
-  },
-  {
-    cat: "건강모임",
-    title: "봄맞이 건강걷기 대회 참가자 모집",
-    date: "2026.03.01",
-  },
-  {
-    cat: "새 소식",
-    title: "3월 서비스 준비 일정 안내",
-    date: "2026.02.28",
-  },
-  {
-    cat: "자료",
-    title: "만성질환 자가관리 가이드북 배포",
-    date: "2026.02.15",
-  },
-];
-
-/* ─── 히어로 아래 신뢰 배지 ─── */
-const TRUST_BADGES_NORMAL = [
-  "주민이 주인(1인 1표)",
-  "진료 + 돌봄 + 연결",
-  "전화/온라인으로 쉽게 시작",
-];
-const TRUST_BADGES_SENIOR = [
-  "우리 동네가 주인(한 사람 한 표)",
-  "진료 + 돌봄을 같이 챙겨요",
-  "전화 한 통이면 안내해요",
-];
+const HOME_VIDEO_SHOWCASE = {
+  title: "조합 소식 영상",
+  description: "관리자 페이지에서 지정한 MP4 영상을 재생합니다.",
+  // Vite public 경로: 프로젝트의 public/videos/home-news.mp4 파일을 교체하면 반영됩니다.
+  src: "/videos/home-news.mp4",
+};
 
 export function HomePage() {
-  const navigate = useNavigate();
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
   const { isSenior } = useSeniorMode();
-  const [showAllFaq, setShowAllFaq] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [heroIdx, setHeroIdx] = useState(0);
+  const [heroScrollY, setHeroScrollY] = useState(0);
 
-  const problems = isSenior ? PROBLEMS_SENIOR : PROBLEMS_NORMAL;
-  const benefits = isSenior ? BENEFITS_SENIOR : BENEFITS_NORMAL;
-  const promises = isSenior ? PROMISES_SENIOR : PROMISES_NORMAL;
-  const steps = isSenior ? STEPS_SENIOR : STEPS_NORMAL;
-  const trustBadges = isSenior
-    ? TRUST_BADGES_SENIOR
-    : TRUST_BADGES_NORMAL;
-  const visibleFaq = showAllFaq
-    ? FAQ_DATA
-    : FAQ_DATA.slice(0, 6);
+  useEffect(() => {
+    let frameId = 0;
 
-  const sectionPy = isSenior
-    ? "py-10 md:py-16 lg:py-20"
-    : "py-10 md:py-20 lg:py-28";
+    const syncScrollPosition = () => {
+      frameId = 0;
+      setHeroScrollY(window.scrollY);
+    };
+
+    const onScroll = () => {
+      if (frameId !== 0) return;
+      frameId = window.requestAnimationFrame(syncScrollPosition);
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frameId !== 0) cancelAnimationFrame(frameId);
+    };
+  }, []);
+
+  const heroSlide = HERO_SLIDES[heroIdx];
+  const heroSubtitle =
+    isSenior ? heroSlide.seniorSub : heroSlide.sub;
+  const quickMenuRevealProgress = clamp(
+    (heroScrollY - QUICK_MENU_REVEAL_START) /
+      QUICK_MENU_REVEAL_DISTANCE,
+    0,
+    1,
+  );
+  const heroBottomInfoOpacity = clamp(
+    1 - quickMenuRevealProgress * 1.2,
+    0,
+    1,
+  );
 
   return (
-    <div>
-      <Hero />
+    <div className="bg-[#F5F2EA]">
+      {/* ═══ HERO — quick menu sits at the bottom edge above the next section ═══ */}
+      <section className="relative min-h-[100dvh]">
+        <div className="absolute inset-0 overflow-hidden">
+          {HERO_SLIDES.map((slide, i) => (
+            <div
+              key={i}
+              className="absolute inset-0 transition-opacity duration-700"
+              style={{
+                opacity: heroIdx === i ? 1 : 0,
+              }}
+            >
+              <ImageWithFallback
+                src={slide.image}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            </div>
+          ))}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0D1F1C]/88 via-[#1F4B43]/62 to-[#1F4B43]/22" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0D1F1C]/74 via-[#0D1F1C]/20 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0F1E1B]/78 to-transparent" />
+        </div>
 
-      {/* ═══ Section A: 왜 필요한가 (문제 공감) ═══ */}
-      <section className={`${sectionPy} bg-white`}>
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8 md:mb-14">
-            <span
-              className="inline-block px-4 py-1.5 rounded-full bg-[#F2EBDD] text-[#1F6B78] text-sm mb-4"
-              style={{ fontWeight: 600 }}
-            >
-              왜 필요한가요
-            </span>
-            <h2
-              className={`${isSenior ? "text-[28px] md:text-[34px]" : "text-2xl md:text-3xl"} text-[#111827] mb-4`}
-              style={{ fontWeight: 700, lineHeight: 1.3 }}
-            >
-              {isSenior
-                ? "참지 마세요.\n의료진이 찾아갑니다."
-                : "참지 마세요.\n찾아가는 진료, 이어지는 돌봄."}
-            </h2>
-            <p
-              className={`text-[#374151] max-w-2xl mx-auto leading-relaxed ${isSenior ? "text-[18px]" : ""}`}
-            >
-              {isSenior
-                ? "병원 가기 힘드시죠. 전문 의료진이 직접 집으로 찾아가고, 경험 많은 사회복지사가 필요한 돌봄까지 이어드립니다. 혼자 걱정하지 마세요."
-                : `하루 몇 대 없는 버스로 몇 시간을 써야 겨우 진료 한 번. 퇴원 직후의 환자도, 걸음이 느린 어르신도 그 길을 똑같이 견뎌야 합니다. 혼자 사는 분은 돌봄 없이는 일상조차 버겁습니다. ${V.조합명}은 전문 의료진의 방문진료와 경험 많은 사회복지사의 돌봄 서비스로 이 문제를 해결합니다.`}
-            </p>
+        <div className="relative mx-auto flex min-h-[100dvh] max-w-[1360px] flex-col px-5 pt-28 sm:px-6">
+          <div className="grid flex-1 grid-cols-1 items-center gap-10 pb-28 md:pb-32 lg:grid-cols-[minmax(0,760px)_1fr]">
+            <div className="max-w-3xl">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={heroIdx}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.45 }}
+                >
+                  {heroSlide.badge ? (
+                    <span
+                      className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-sm text-white/90 backdrop-blur-sm"
+                      style={{ fontWeight: 500 }}
+                    >
+                      <span className="h-2 w-2 rounded-full bg-[#6E958B] animate-pulse" />
+                      {heroSlide.badge}
+                    </span>
+                  ) : null}
+
+                  <h1
+                    className={`mb-5 whitespace-pre-line text-white ${isSenior ? "text-[32px] md:text-[40px] lg:text-[46px]" : "text-[28px] md:text-[38px] lg:text-[48px]"}`}
+                    style={{
+                      fontFamily: "'Noto Serif KR', serif",
+                      fontWeight: 700,
+                      lineHeight: 1.24,
+                      letterSpacing: "-0.02em",
+                      maxWidth: "48rem",
+                    }}
+                  >
+                    {isSenior
+                      ? heroSlide.seniorTitle
+                      : heroSlide.title}
+                  </h1>
+
+                  <p
+                    className={`max-w-2xl text-white/76 transition-opacity duration-300 ${isSenior ? "text-[18px] md:text-[20px]" : "text-base md:text-lg"}`}
+                  >
+                    {heroSubtitle}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+
+              <div className="mt-8 overflow-hidden">
+                <div className="flex flex-wrap gap-3">
+                  <Link
+                    to="/about"
+                    className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm text-[#1F4B43] transition-all hover:bg-[#F7F2E8]"
+                    style={{ fontWeight: 600 }}
+                  >
+                    조합 소개
+                    <ArrowRight
+                      size={16}
+                      className="transition-transform group-hover:translate-x-0.5"
+                    />
+                  </Link>
+                  <Link
+                    to="/join"
+                    className="rounded-full bg-[#C87C5A] px-6 py-3.5 text-sm text-white transition-colors hover:bg-[#B56E4E]"
+                    style={{ fontWeight: 600 }}
+                  >
+                    조합원 가입
+                  </Link>
+                </div>
+
+                <div className="mt-5 flex items-center gap-3">
+                  {HERO_SLIDES.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setHeroIdx(i)}
+                      className="relative cursor-pointer"
+                      aria-label={`${i + 1}번 히어로 보기`}
+                    >
+                      <div
+                        className={`h-1 rounded-full transition-all duration-300 ${heroIdx === i ? "w-8 bg-white" : "w-4 bg-white/30"}`}
+                      />
+                    </button>
+                  ))}
+                  <span className="ml-2 text-xs text-white/45">
+                    {String(heroIdx + 1).padStart(2, "0")} /{" "}
+                    {String(HERO_SLIDES.length).padStart(
+                      2,
+                      "0",
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-            {problems.map((p, i) => (
-              <div
-                key={i}
-                className="rounded-2xl overflow-hidden bg-[#FAFAFA] border border-[#E5E7EB] hover:shadow-md transition-shadow group"
-              >
-                {!isSenior && "img" in p && (
-                  <div className="h-36 md:h-48 overflow-hidden">
-                    <ImageWithFallback
-                      src={
-                        (p as (typeof PROBLEMS_NORMAL)[0]).img
-                      }
-                      alt={p.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 grayscale-[30%]"
-                    />
+          <div
+            className="absolute inset-x-5 bottom-5 transition-all duration-300 sm:inset-x-6 md:bottom-6"
+            style={{
+              opacity: heroBottomInfoOpacity,
+              visibility:
+                heroBottomInfoOpacity > 0.02
+                  ? "visible"
+                  : "hidden",
+              transform: `translateY(${quickMenuRevealProgress * 16}px)`,
+            }}
+          >
+            <div className="hidden md:block">
+              <div className="grid grid-cols-4 divide-x divide-white/15">
+                {[
+                  {
+                    value: 2025,
+                    suffix: "년",
+                    label: "설립연도",
+                  },
+                  {
+                    value: 3,
+                    suffix: "개소",
+                    label: "사업소 운영",
+                  },
+                  {
+                    value: 365,
+                    suffix: "일",
+                    label: "연중 케어 시스템",
+                  },
+                  {
+                    value: 100,
+                    suffix: "%",
+                    label: "비영리 운영",
+                  },
+                ].map((s) => (
+                  <div key={s.label} className="px-4 text-center">
+                    <p
+                      className="mb-0.5 text-white text-xl md:text-2xl"
+                      style={{
+                        fontFamily: "'Noto Serif KR', serif",
+                        fontWeight: 900,
+                      }}
+                    >
+                      <CountUp end={s.value} suffix={s.suffix} />
+                    </p>
+                    <p className="text-xs text-white/40">
+                      {s.label}
+                    </p>
                   </div>
-                )}
-                <div className={`p-4 md:p-6 ${isSenior ? "p-6 md:p-8" : ""}`}>
-                  <div className="flex items-center gap-3 mb-2 md:mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#1F6B78]/10 flex items-center justify-center">
-                      <p.icon
-                        size={20}
-                        className="text-[#1F6B78]"
+                ))}
+              </div>
+            </div>
+            <div className="mt-5 flex items-center justify-center gap-1 text-white/55">
+              <span
+                className="text-[11px]"
+                style={{ letterSpacing: "0.16em", fontWeight: 600 }}
+              >
+                하단으로 스크롤
+              </span>
+              <ChevronDown size={16} className="animate-bounce" />
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute inset-x-0 bottom-0 z-20 hidden translate-y-1/2 md:block">
+          <div className="mx-auto max-w-[1180px] px-5 sm:px-6">
+            <div
+              className="transition-all duration-300"
+              style={{
+                opacity: quickMenuRevealProgress,
+                transform: `translateY(${(1 - quickMenuRevealProgress) * 16}px)`,
+                visibility:
+                  quickMenuRevealProgress > 0.01
+                    ? "visible"
+                    : "hidden",
+                pointerEvents:
+                  quickMenuRevealProgress > 0.15
+                    ? "auto"
+                    : "none",
+              }}
+            >
+              <QuickMenuSection
+                items={HOME_QUICK_MENU_ITEMS}
+                isSenior={isSenior}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ MEMBERSHIP HUB ═══ */}
+      <section className="relative hidden overflow-hidden bg-[#ECECEC] pb-14 pt-12 md:block md:pb-16 md:pt-20">
+        <div className="pointer-events-none absolute -left-12 bottom-0 h-44 w-44 rounded-full bg-[#A8D7A0]/35 blur-2xl" />
+        <div className="pointer-events-none absolute -right-10 top-8 h-36 w-36 rounded-full bg-[#B4E1C8]/40 blur-2xl" />
+        <div className="max-w-[1200px] mx-auto px-5 sm:px-6">
+          <AnimSection>
+            <motion.div variants={fadeUp} className="text-center">
+              <h2
+                className="text-[24px] md:text-[32px] tracking-[-0.015em]"
+                style={{
+                  fontFamily: "'Noto Serif KR', serif",
+                  fontWeight: 700,
+                }}
+              >
+                <span className="text-[#2F3735]">찾아가는</span>{" "}
+                <span className="text-[#2A6A5F]">의료</span>,{" "}
+                <span className="text-[#2F3735]">함께하는</span>{" "}
+                <span className="text-[#D47A46]">건강</span>
+                <br />
+                <span className="text-[#1F4B43]">
+                  강원 농산어촌 의사협
+                </span>
+              </h2>
+            </motion.div>
+          </AnimSection>
+
+          <AnimSection>
+            <motion.div variants={fadeUp} className="mx-auto mt-7 grid max-w-[640px] grid-cols-1 gap-3 sm:grid-cols-3">
+              <Link
+                to="/about"
+                className="group flex h-[152px] flex-col items-center justify-center rounded-[14px] bg-[#6F89AF] text-white shadow-[0_16px_28px_-24px_rgba(22,39,54,0.8)] transition-transform hover:-translate-y-0.5"
+              >
+                <Users size={44} strokeWidth={1.9} />
+                <p
+                  className="mt-3 text-[22px] leading-none"
+                  style={{ fontWeight: 700 }}
+                >
+                  조합 소개
+                </p>
+                <p className="mt-1 text-[13px] text-white/88">
+                  강원농산어촌의사협이란?
+                </p>
+              </Link>
+
+              <Link
+                to="/join"
+                className="group flex h-[152px] flex-col items-center justify-center rounded-[14px] bg-[#E67A3A] text-white shadow-[0_16px_28px_-24px_rgba(58,31,20,0.72)] transition-transform hover:-translate-y-0.5"
+              >
+                <Heart size={44} strokeWidth={1.9} />
+                <p className="mt-3 text-[22px] leading-none" style={{ fontWeight: 700 }}>조합원 가입</p>
+                <p className="mt-1 text-[13px] text-white/88">건강공동체 참여</p>
+              </Link>
+
+              <Link
+                to="/inquiries"
+                className="group flex h-[152px] flex-col items-center justify-center rounded-[14px] bg-[#9A6A50] text-white shadow-[0_16px_28px_-24px_rgba(35,25,21,0.65)] transition-transform hover:-translate-y-0.5"
+              >
+                <PhoneCall size={44} strokeWidth={1.9} />
+                <p className="mt-3 text-[22px] leading-none" style={{ fontWeight: 700 }}>상담 문의</p>
+                <p className="mt-1 text-[13px] text-white/88">이용 안내</p>
+              </Link>
+            </motion.div>
+          </AnimSection>
+
+        </div>
+      </section>
+
+      {/* ═══ NOTICES & PRESS — 좌우 2열 ═══ */}
+      <section className="bg-white py-14 md:py-18">
+        <div className="max-w-[1200px] mx-auto px-5 sm:px-6">
+          <AnimSection className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14">
+            {/* ── 좌측: 공지사항 ── */}
+            <motion.div variants={fadeUp}>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-[#1F2623] text-xl md:text-2xl" style={{ fontFamily: "'Noto Serif KR', serif", fontWeight: 700 }}>공지사항</h2>
+                <Link to="/notices" className="group inline-flex items-center gap-1 text-sm text-[#1F4B43] hover:underline" style={{ fontWeight: 600 }}>
+                  전체보기 <ChevronRightIcon size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+              </div>
+              <div className="space-y-6">
+                {NOTICES.slice(0, 2).map((n) => (
+                  <Link key={n.id} to={`/community/notices/${n.id}`} className="group flex gap-4">
+                    <div className="w-[38%] shrink-0 rounded-lg overflow-hidden aspect-[4/3]">
+                      <ImageWithFallback src={n.image} alt={n.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    </div>
+                    <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
+                      <div>
+                        <span className="text-[12px] text-[#7A8584] mb-1.5 block" style={{ fontWeight: 500 }}>{n.type}</span>
+                        <h4 className="text-[#1F2623] text-[14px] leading-snug mb-1.5 group-hover:text-[#1F4B43] transition-colors line-clamp-2" style={{ fontWeight: 700 }}>{n.title}</h4>
+                        <p className="text-[#8C8C8C] text-[12px] leading-relaxed line-clamp-2 hidden sm:block">{n.excerpt}</p>
+                      </div>
+                      <div className="flex items-center gap-3 mt-2 text-[11px] text-[#ABABAB]">
+                        <span>{n.date}</span>
+                        <span className="flex items-center gap-1 text-[#7A8584] group-hover:text-[#1F4B43] transition-colors" style={{ fontWeight: 500 }}>보기 <ArrowRight size={10} /></span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* ── 우측: 언론보도 ── */}
+            <motion.div variants={fadeUp}>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-[#1F2623] text-xl md:text-2xl" style={{ fontFamily: "'Noto Serif KR', serif", fontWeight: 700 }}>언론보도</h2>
+                <Link to="/community/press" className="group inline-flex items-center gap-1 text-sm text-[#1F4B43] hover:underline" style={{ fontWeight: 600 }}>
+                  전체보기 <ChevronRightIcon size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+              </div>
+              <div className="space-y-6">
+                {PRESS.slice(0, 2).map((a) => (
+                  <Link key={a.id} to={`/community/press/${a.id}`} className="group flex gap-4">
+                    <div className="w-[38%] shrink-0 rounded-lg overflow-hidden aspect-[4/3]">
+                      <ImageWithFallback src={a.image} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                    </div>
+                    <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
+                      <div>
+                        <span className="text-[12px] text-[#7A8584] mb-1.5 block" style={{ fontWeight: 500 }}>{a.source}</span>
+                        <h4 className="text-[#1F2623] text-[14px] leading-snug mb-1.5 group-hover:text-[#1F4B43] transition-colors line-clamp-2" style={{ fontWeight: 700 }}>{a.title}</h4>
+                        <p className="text-[#8C8C8C] text-[12px] leading-relaxed line-clamp-2 hidden sm:block">{a.excerpt}</p>
+                      </div>
+                      <div className="flex items-center gap-3 mt-2 text-[11px] text-[#ABABAB]">
+                        <span>{a.date}</span>
+                        <span className="flex items-center gap-1 text-[#7A8584] group-hover:text-[#1F4B43] transition-colors" style={{ fontWeight: 500 }}>보기 <ArrowRight size={10} /></span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </motion.div>
+          </AnimSection>
+
+          <AnimSection>
+            <motion.div
+              variants={fadeUp}
+              className="mt-14 md:mt-16"
+            >
+              <div className="mb-8 flex items-center justify-between">
+                <div>
+                  <h2
+                    className="text-[#1F2623] text-xl md:text-2xl"
+                    style={{
+                      fontFamily: "'Noto Serif KR', serif",
+                      fontWeight: 700,
+                    }}
+                  >
+                    조합, 오늘의 하루
+                  </h2>
+                  <p className="text-sm text-[#7A8584] mt-1">
+                    우리 조합의 따뜻한 일상을 기록합니다
+                  </p>
+                </div>
+                <Link
+                  to="/community/daily"
+                  className="group inline-flex items-center gap-1 text-sm text-[#1F4B43] hover:underline"
+                  style={{ fontWeight: 600 }}
+                >
+                  전체보기{" "}
+                  <ChevronRightIcon
+                    size={14}
+                    className="group-hover:translate-x-0.5 transition-transform"
+                  />
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {DAILY_STORIES.map((story) => (
+                  <motion.div
+                    key={story.title}
+                    variants={fadeUp}
+                    className="group cursor-pointer overflow-hidden rounded-xl border border-[#E5ECEA] bg-[#FCFDFC] p-3 transition-all hover:border-[#D4E1DC] hover:bg-white"
+                  >
+                    <div className="relative overflow-hidden rounded-lg aspect-[4/3]">
+                      <ImageWithFallback
+                        src={story.image}
+                        alt={story.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                       />
                     </div>
-                    <h3
-                      className={`text-[#111827] ${isSenior ? "text-[22px]" : "text-lg"}`}
-                      style={{ fontWeight: 600 }}
-                    >
-                      {p.title}
-                    </h3>
-                  </div>
-                  <p
-                    className={`text-[#374151] leading-relaxed ${isSenior ? "text-[18px]" : "text-sm"}`}
-                  >
-                    {p.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ Section B: 조합은 무엇인가 (정의 + 5약속) ═══ */}
-      <section
-        className={`${sectionPy}`}
-        style={{ backgroundColor: C.accent }}
-      >
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8 md:mb-14">
-            <span
-              className="inline-block px-4 py-1.5 rounded-full bg-white text-[#1F6B78] text-sm mb-4"
-              style={{ fontWeight: 600 }}
-            >
-              {isSenior ? "우리 조합은요" : "조합 소개"}
-            </span>
-            <h2
-              className={`${isSenior ? "text-[26px] md:text-[32px]" : "text-2xl md:text-3xl"} text-[#111827] max-w-3xl mx-auto mb-6 whitespace-pre-line`}
-              style={{ fontWeight: 700, lineHeight: 1.3 }}
-            >
-              {isSenior
-                ? "우리 동네 '건강 우체국'이에요."
-                : "주민이 주체가 되어 의료와 돌봄을\n'지역 안에서' 만드는 비영리 사회적협동조합입니다."}
-            </h2>
-            {isSenior ? (
-              <div
-                className="max-w-xl mx-auto space-y-2 text-[#374151]"
-                style={{ fontSize: 18 }}
-              >
-                <p>
-                  아프면 어디로 가야 할지, 먼저 안내해 드려요.
-                </p>
-                <p>필요하면 진료도, 돌봄도 '이어' 드려요.</p>
-                <p>
-                  우리 동네 사람들이 힘을 모아 만든 곳입니다.
-                </p>
-              </div>
-            ) : (
-              <p className="text-[#374151] max-w-3xl mx-auto leading-relaxed">
-                외부 자본이 아니라, 조합원의 참여와 출자로
-                운영되는 지역 기반 조직으로서 건강권과 의료
-                접근성을 높이고, 취약계층 통합 돌봄과 지속가능한
-                1차 의료 중심 건강관리를 지향합니다.
-              </p>
-            )}
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
-            {promises.map((p, i) => (
-              <div
-                key={i}
-                className={`group flex flex-col bg-white rounded-xl border border-[#E5E7EB] overflow-hidden hover:shadow-md transition-shadow ${i === 4 ? "col-span-2 sm:col-span-2 lg:col-span-1" : ""}`}
-              >
-                <div className="relative h-24 md:h-32 overflow-hidden">
-                  <ImageWithFallback
-                    src={p.img}
-                    alt={p.text}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                  <div className="absolute bottom-2 left-2 w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow-sm">
-                    <p.icon size={18} className="text-[#1F6B78]" />
-                  </div>
-                </div>
-                <div className="p-3 md:p-4 text-center">
-                  <p
-                    className={`text-[#111827] leading-snug ${isSenior ? "text-[15px] md:text-[17px]" : "text-xs md:text-sm"}`}
-                    style={{ fontWeight: 600 }}
-                  >
-                    {p.text}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* CTA */}
-          <div className="mt-8 md:mt-12 flex flex-col items-center justify-center gap-3 md:flex-row md:gap-4">
-            {isSenior ? (
-              <>
-                <button
-                  onClick={() =>
-                    alert(`대표전화: ${V.대표전화}`)
-                  }
-                  className="w-full md:w-auto px-8 py-4 min-h-[52px] rounded-full bg-[#1F6B78] text-white hover:bg-[#185A65] transition-colors cursor-pointer shadow-lg active:scale-[0.98]"
-                  style={{ fontWeight: 700, fontSize: 18 }}
-                >
-                  <PhoneCall
-                    size={20}
-                    className="inline mr-2"
-                  />
-                  전화로 안내받기({V.대표전화})
-                </button>
-                <button
-                  onClick={() => navigate("/join")}
-                  className="w-full md:w-auto px-8 py-4 min-h-[52px] rounded-full border-2 border-[#1F6B78] text-[#1F6B78] hover:bg-[#1F6B78]/5 transition-colors cursor-pointer active:scale-[0.98]"
-                  style={{ fontWeight: 600, fontSize: 18 }}
-                >
-                  조합원 가입하기
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => navigate("/about")}
-                  className="w-full md:w-auto px-6 py-3 min-h-[48px] rounded-full bg-[#1F6B78] text-white hover:bg-[#185A65] transition-colors cursor-pointer active:scale-[0.98]"
-                  style={{ fontWeight: 600 }}
-                >
-                  {V.조합명_짧게} 소개 자세히 보기{" "}
-                  <ArrowRight
-                    size={16}
-                    className="inline ml-1"
-                  />
-                </button>
-                <button
-                  onClick={() => {
-                    const el =
-                      document.getElementById("faq-section");
-                    el?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="w-full md:w-auto px-6 py-3 min-h-[48px] rounded-full border border-[#1F6B78] text-[#1F6B78] hover:bg-[#1F6B78]/5 transition-colors cursor-pointer active:scale-[0.98]"
-                  style={{ fontWeight: 600 }}
-                >
-                  왜 사회적협동조합인가요?
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ Section C: 서비스 맵 ═══ */}
-      <section className={`${sectionPy} bg-white`}>
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-4">
-            <span
-              className="inline-block px-4 py-1.5 rounded-full bg-[#F2EBDD] text-[#1F6B78] text-sm mb-4"
-              style={{ fontWeight: 600 }}
-            >
-              서비스 안내
-            </span>
-            <h2
-              className={`${isSenior ? "text-[28px] md:text-[34px]" : "text-2xl md:text-3xl"} text-[#111827] mb-4`}
-              style={{ fontWeight: 700 }}
-            >
-              {isSenior
-                ? "필요한 도움을 '딱 쉽게'."
-                : "진료만 하는 곳이 아니라, '필요한 돌봄을 연결하는 곳'입니다."}
-            </h2>
-          </div>
-          <p
-            className={`text-center text-[#6B7280] mb-8 md:mb-14 ${isSenior ? "text-[17px]" : "text-sm"}`}
-          >
-            {isSenior
-              ? "4가지 도움만 먼저 보여드릴게요. 필요한 항목을 눌러 자세히 보세요."
-              : "핵심 서비스 4가지만 먼저 확인하고, 자세한 내용은 서비스 페이지에서 보세요."}
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {SERVICES.map((s) => (
-              <div
-                key={s.title}
-                className="bg-[#FAFAFA] rounded-2xl border border-[#E5E7EB] p-5 md:p-6 hover:shadow-md transition-shadow flex flex-col"
-              >
-                <div className="-mx-5 -mt-5 md:-mx-6 md:-mt-6 mb-4 relative">
-                  <div className="h-44 md:h-48 overflow-hidden rounded-t-2xl">
-                    <ImageWithFallback
-                      src={s.image}
-                      alt={s.imageLabel}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#111827]/55 via-[#111827]/10 to-transparent" />
-                  </div>
-                  <div className="absolute top-3 left-3 w-11 h-11 rounded-lg bg-white/85 backdrop-blur-sm flex items-center justify-center border border-white/70">
-                    <s.icon size={22} className="text-[#1F6B78]" />
-                  </div>
-                  <span
-                    className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs ${
-                      s.status === "운영 중"
-                        ? "bg-[#67B89A] text-white"
-                        : "bg-white/90 text-[#6B7280]"
-                    }`}
-                    style={{ fontWeight: 600 }}
-                  >
-                    {s.status}
-                  </span>
-                </div>
-                <h3
-                  className={`text-[#111827] mb-2 ${isSenior ? "text-[20px]" : "text-lg"}`}
-                  style={{ fontWeight: 700 }}
-                >
-                  {isSenior ? s.seniorTitle : s.title}
-                </h3>
-                <p
-                  className={`text-[#374151] leading-relaxed mb-4 ${isSenior ? "text-[17px]" : "text-sm"}`}
-                >
-                  {isSenior ? s.seniorDesc : s.desc}
-                </p>
-
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {s.points.map((point) => (
-                    <span
-                      key={point}
-                      className={`inline-flex items-center gap-1.5 rounded-full bg-[#1F6B78]/8 text-[#1F6B78] px-3 py-1 ${isSenior ? "text-[15px]" : "text-xs"}`}
-                      style={{ fontWeight: 600 }}
-                    >
-                      <CheckCircle2 size={14} />
-                      {point}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="mt-auto">
-                  <button
-                    onClick={() => navigate(`/services?cat=${s.id}`)}
-                    className={`w-full py-2.5 min-h-[48px] rounded-lg bg-[#1F6B78] text-white text-sm hover:bg-[#185A65] transition-colors cursor-pointer active:scale-[0.98] ${isSenior ? "text-[16px]" : ""}`}
-                    style={{ fontWeight: 600 }}
-                  >
-                    서비스 자세히 보기
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 md:mt-8 text-center">
-            <button
-              onClick={() =>
-                alert(`대표전화: ${V.대표전화}`)
-              }
-              className={`px-6 py-3 min-h-[48px] rounded-full border border-[#E5E7EB] text-[#374151] hover:bg-gray-50 transition-colors cursor-pointer active:scale-[0.98] ${isSenior ? "text-[17px]" : "text-sm"}`}
-              style={{ fontWeight: 600 }}
-            >
-              <Phone size={16} className="inline mr-1.5" />
-              전화로 바로 문의하기
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ Section D: 이용 방법 3단계 ═══ */}
-      <section
-        className={`${sectionPy}`}
-        style={{ backgroundColor: C.bg }}
-      >
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8 md:mb-14">
-            <span
-              className="inline-block px-4 py-1.5 rounded-full bg-[#67B89A]/15 text-[#1F6B78] text-sm mb-4"
-              style={{ fontWeight: 600 }}
-            >
-              이용 방법
-            </span>
-            <h2
-              className={`${isSenior ? "text-[28px] md:text-[34px]" : "text-2xl md:text-3xl"} text-[#111827] mb-4`}
-              style={{ fontWeight: 700 }}
-            >
-              {isSenior
-                ? "시작은 이렇게 해요."
-                : "어떻게 시작하나요?"}
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 max-w-4xl mx-auto">
-            {steps.map((s, i) => (
-              <div
-                key={s.step}
-                className="relative flex flex-row md:flex-col items-center md:items-center text-left md:text-center gap-4 md:gap-0 p-3 md:p-4"
-              >
-                <div
-                  className={`w-12 h-12 md:w-16 md:h-16 rounded-full bg-[#1F6B78] text-white flex items-center justify-center shrink-0 md:mb-5 ${isSenior ? "text-[20px] md:text-[22px]" : "text-base md:text-lg"}`}
-                  style={{ fontWeight: 700 }}
-                >
-                  {s.step}
-                </div>
-                <div className="flex-1 md:flex-none">
-                  <h4
-                    className={`text-[#111827] mb-1 md:mb-2 ${isSenior ? "text-[18px] md:text-[20px]" : ""}`}
-                    style={{ fontWeight: 600 }}
-                  >
-                    {s.title}
-                  </h4>
-                  {s.desc && (
-                    <p
-                      className={`text-[#374151] leading-relaxed ${isSenior ? "text-[15px] md:text-[17px]" : "text-sm"}`}
-                    >
-                      {s.desc}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* CTA */}
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 md:flex-row md:gap-4">
-            <button
-              onClick={() => navigate("/inquiries")}
-              className="w-full md:w-auto px-6 py-3 min-h-[48px] rounded-full bg-[#1F6B78] text-white hover:bg-[#185A65] transition-colors cursor-pointer active:scale-[0.98]"
-              style={{
-                fontWeight: 600,
-                fontSize: isSenior ? 18 : 14,
-              }}
-            >
-              지금 상담하기
-            </button>
-            <button
-              onClick={() => {
-                const el =
-                  document.getElementById("faq-section");
-                el?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="w-full md:w-auto px-6 py-3 min-h-[48px] rounded-full border border-[#1F6B78] text-[#1F6B78] hover:bg-[#1F6B78]/5 transition-colors cursor-pointer active:scale-[0.98]"
-              style={{
-                fontWeight: 600,
-                fontSize: isSenior ? 18 : 14,
-              }}
-            >
-              자주 묻는 질문 보기
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ Section E: 조합원 혜택 + 출자금 안심 ═══ */}
-      <section className={`${sectionPy} bg-white`}>
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8 md:mb-14">
-            <span
-              className="inline-block px-4 py-1.5 rounded-full bg-[#F2EBDD] text-[#1F6B78] text-sm mb-4"
-              style={{ fontWeight: 600 }}
-            >
-              조합원 혜택
-            </span>
-            <h2
-              className={`${isSenior ? "text-[28px] md:text-[34px]" : "text-2xl md:text-3xl"} text-[#111827] mb-4`}
-              style={{ fontWeight: 700 }}
-            >
-              {isSenior
-                ? "조합원은 '손님'이 아니라 '주인'이에요."
-                : "조합원은 '이용자'이자 '주인'입니다."}
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
-            {/* 혜택 리스트 */}
-            <div>
-              <h3
-                className={`text-[#111827] mb-6 ${isSenior ? "text-[22px]" : "text-lg"}`}
-                style={{ fontWeight: 600 }}
-              >
-                {isSenior
-                  ? "조합원은 뭐가 좋아요?"
-                  : "조합원 혜택"}
-              </h3>
-              <div className="space-y-4">
-                {benefits.map((b, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-3 p-4 bg-[#FAFAFA] rounded-xl border border-[#E5E7EB]"
-                  >
-                    <CheckCircle2
-                      size={20}
-                      className="text-[#67B89A] shrink-0 mt-0.5"
-                    />
-                    <span
-                      className={`text-[#111827] ${isSenior ? "text-[18px]" : "text-sm"}`}
-                      style={{ fontWeight: 500 }}
-                    >
-                      {b}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 출자금 안심 박스 */}
-            <div
-              className="p-5 md:p-8 rounded-2xl"
-              style={{ backgroundColor: C.accent }}
-            >
-              <div className="flex items-start gap-3 mb-4 md:mb-5">
-                <Shield size={22} className="text-[#1F6B78] shrink-0 mt-0.5" />
-                <h3
-                  className={`text-[#111827] ${isSenior ? "text-[22px]" : "text-lg"}`}
-                  style={{ fontWeight: 700 }}
-                >
-                  {isSenior
-                    ? "출자금은 '씨앗돈'이에요."
-                    : "출자금은 '가입비'가 아니라 '조합을 움직이는 씨앗돈(내 지분)'입니다."}
-                </h3>
-              </div>
-              <div className="space-y-4 mb-6">
-                {[
-                  "조합 운영과 지역 건강 활동에 사용됩니다.",
-                  "탈퇴 시에는 정관과 절차에 따라 환급이 진행됩니다.",
-                  isSenior
-                    ? "돈 벌려고 하는 곳이 아니라, 건강을 지키는 곳입니다."
-                    : "배당이 목적이 아니라, 우리 지역의 건강을 지키는 것이 목적입니다.",
-                ].map((t, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-2"
-                  >
-                    <CheckCircle2
-                      size={18}
-                      className="text-[#1F6B78] shrink-0 mt-0.5"
-                    />
-                    <span
-                      className={`text-[#111827] ${isSenior ? "text-[18px]" : "text-sm"}`}
-                      style={{ fontWeight: 500 }}
-                    >
-                      {t}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="p-4 bg-white rounded-xl border border-[#E5E7EB] mb-6">
-                <p
-                  className={`text-[#111827] text-center ${isSenior ? "text-[20px]" : ""}`}
-                  style={{ fontWeight: 700 }}
-                >
-                  출자금 ={" "}
-                  <span className="text-[#1F6B78]">
-                    {V.출자금_최저}
-                  </span>
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => navigate("/join")}
-                  className="flex-1 py-3 rounded-lg bg-[#1F6B78] text-white hover:bg-[#185A65] transition-colors cursor-pointer"
-                  style={{
-                    fontWeight: 600,
-                    fontSize: isSenior ? 17 : 14,
-                  }}
-                >
-                  조합원 가입하기({V.가입소요시간})
-                </button>
-                <button
-                  onClick={() => {
-                    const el =
-                      document.getElementById("faq-section");
-                    el?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="flex-1 py-3 rounded-lg border border-[#1F6B78] text-[#1F6B78] hover:bg-[#1F6B78]/5 transition-colors cursor-pointer"
-                  style={{
-                    fontWeight: 600,
-                    fontSize: isSenior ? 17 : 14,
-                  }}
-                >
-                  출자금/탈퇴 절차 FAQ
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ Section F: 가�� 원큐 ═══ */}
-      <section
-        className={`${sectionPy}`}
-        style={{ backgroundColor: "#1F6B78" }}
-      >
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2
-                className={`text-white mb-4 whitespace-pre-line ${isSenior ? "text-[28px] md:text-[34px]" : "text-2xl md:text-3xl"}`}
-                style={{ fontWeight: 700, lineHeight: 1.3 }}
-              >
-                {isSenior
-                  ? "가입은 어렵지 않아요."
-                  : `조합원 가입, ${V.가입소요시간}이면 시작됩니다.`}
-              </h2>
-              <p
-                className={`text-white/70 mb-8 leading-relaxed ${isSenior ? "text-[18px]" : ""}`}
-              >
-                {isSenior
-                  ? "아래 4가지만 적어주세요."
-                  : "아래 정보는 가입 안내를 위해 필요한 최소 항목입니다."}
-              </p>
-
-              {/* 3단계 미리보기 */}
-              <div className="space-y-4 mb-8">
-                {(isSenior
-                  ? [
-                      { n: "1", t: "동의(큰 체크 2개)" },
-                      {
-                        n: "2",
-                        t: "이름/생년월일/연락처/주소",
-                      },
-                      { n: "3", t: "출자금 선택 + 완료" },
-                    ]
-                  : [
-                      { n: "1", t: "약관/동의(요약)" },
-                      { n: "2", t: "기본 정보 입력" },
-                      { n: "3", t: "출자금 선택 & 완료" },
-                    ]
-                ).map((s) => (
-                  <div
-                    key={s.n}
-                    className="flex items-center gap-4"
-                  >
-                    <div
-                      className="w-10 h-10 rounded-full bg-white/15 text-white flex items-center justify-center shrink-0"
-                      style={{ fontWeight: 700 }}
-                    >
-                      {s.n}
+                    <div className="px-1 pb-1 pt-3">
+                      <p className="mb-1 text-[11px] text-[#95A1A0]">
+                        {story.date}
+                      </p>
+                      <h3
+                        className="mb-1.5 text-[15px] leading-snug text-[#1F2623] transition-colors group-hover:text-[#1F4B43]"
+                        style={{ fontWeight: 700 }}
+                      >
+                        {story.title}
+                      </h3>
+                      <p className="line-clamp-2 text-[13px] leading-relaxed text-[#7F8B89]">
+                        {story.excerpt}
+                      </p>
+                      <div className="mt-2.5 flex items-center gap-1 text-[11px] text-[#7A8584]">
+                        <span style={{ fontWeight: 500 }}>보기</span>
+                        <ArrowRight
+                          size={11}
+                          className="transition-transform group-hover:translate-x-0.5"
+                        />
+                      </div>
                     </div>
-                    <span
-                      className={`text-white/90 ${isSenior ? "text-[18px]" : ""}`}
-                      style={{ fontWeight: 500 }}
-                    >
-                      {s.t}
-                    </span>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
-            </div>
-
-            <div className="flex flex-col items-center gap-3 w-full lg:w-auto">
-              <button
-                onClick={() => navigate("/join")}
-                className="w-full lg:max-w-sm py-4 min-h-[52px] rounded-full bg-white text-[#1F6B78] hover:bg-gray-50 transition-colors cursor-pointer shadow-lg active:scale-[0.98]"
-                style={{
-                  fontWeight: 700,
-                  fontSize: isSenior ? 20 : 18,
-                }}
-              >
-                {isSenior
-                  ? "가입 신청하기"
-                  : "가입 신청 완료하기 →"}
-              </button>
-              <button
-                onClick={() => alert(`대표전화: ${V.대표전화}`)}
-                className="w-full lg:max-w-sm py-4 min-h-[52px] rounded-full bg-[#67B89A] text-white text-center hover:bg-[#5AA889] transition-colors shadow-lg cursor-pointer active:scale-[0.98]"
-                style={{
-                  fontWeight: 700,
-                  fontSize: isSenior ? 20 : 16,
-                }}
-              >
-                <PhoneCall size={20} className="inline mr-2" />
-                전화로 가입 도움받기
-              </button>
-            </div>
-          </div>
+            </motion.div>
+          </AnimSection>
         </div>
       </section>
 
-      {/* ═══ Section G: 공지/커뮤니티 미리보 ═══ */}
-      <section className={`${sectionPy} bg-white`}>
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-6 md:mb-10">
-            <div>
-              <span
-                className="inline-block px-4 py-1.5 rounded-full bg-[#67B89A]/15 text-[#1F6B78] text-sm mb-3"
-                style={{ fontWeight: 600 }}
+      {/* ═══ VIDEO SHOWCASE ═══ */}
+      <section className="bg-[#F9F8F5] py-14 md:py-18">
+        <div className="max-w-[1200px] mx-auto px-5 sm:px-6">
+          <AnimSection>
+            <motion.div variants={fadeUp} className="mb-8 md:mb-10">
+              <h2
+                className="text-[#1F2623] text-xl md:text-2xl"
+                style={{
+                  fontFamily: "'Noto Serif KR', serif",
+                  fontWeight: 700,
+                }}
               >
-                소식/커뮤니티
+                영상으로 보는 조합 소식
+              </h2>
+              <p className="mt-2 text-sm text-[#7A8584]">
+                업로드된 MP4 영상으로 조합 소식을 확인하실 수 있습니다.
+              </p>
+            </motion.div>
+          </AnimSection>
+
+          <AnimSection className="mx-auto max-w-[920px]">
+            <motion.article
+              variants={fadeUp}
+              className="overflow-hidden rounded-2xl border border-[#E7E1D6] bg-white shadow-[0_16px_34px_-28px_rgba(20,34,38,0.35)]"
+            >
+              <div className="aspect-video bg-black">
+                <video
+                  controls
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  className="h-full w-full"
+                  onLoadedData={(e) => {
+                    e.currentTarget.play().catch(() => {});
+                  }}
+                >
+                  <source
+                    src={HOME_VIDEO_SHOWCASE.src}
+                    type="video/mp4"
+                  />
+                </video>
+              </div>
+              <div className="px-5 py-4 md:px-6">
+                <h3
+                  className="text-[#1F2623] text-[17px] md:text-[18px]"
+                  style={{ fontWeight: 700 }}
+                >
+                  {HOME_VIDEO_SHOWCASE.title}
+                </h3>
+                <p className="mt-1.5 text-sm text-[#6F7877]">
+                  {HOME_VIDEO_SHOWCASE.description}
+                </p>
+                <p className="mt-2 text-xs text-[#8C9694]">
+                  업로드 경로: <code>public/videos/home-news.mp4</code>
+                </p>
+              </div>
+            </motion.article>
+          </AnimSection>
+        </div>
+      </section>
+
+      {/* ═══ CARE PROCESS ═══ */}
+      <section className="py-16 md:py-24 bg-white">
+        <div className="max-w-[1000px] mx-auto px-5 sm:px-6">
+          <AnimSection>
+            <motion.div
+              variants={fadeUp}
+              className="text-center mb-12"
+            >
+              <span
+                className="inline-block px-3 py-1 rounded-md bg-[#6E958B]/10 text-[#6E958B] text-xs mb-4"
+                style={{
+                  fontWeight: 700,
+                  letterSpacing: "0.05em",
+                }}
+              >
+                HOW IT WORKS
               </span>
               <h2
-                className={`${isSenior ? "text-[26px] md:text-[32px]" : "text-2xl md:text-3xl"} text-[#111827]`}
-                style={{ fontWeight: 700 }}
+                className={`text-[#1F2623] ${isSenior ? "text-[28px] md:text-[34px]" : "text-[24px] md:text-[32px]"}`}
+                style={{
+                  fontFamily: "'Noto Serif KR', serif",
+                  fontWeight: 700,
+                }}
               >
-                {isSenior
-                  ? "새 소식은 여기서 봐요."
-                  : "공지와 모임 소식, 한눈에 확인하세요."}
+                이용 방법
               </h2>
-            </div>
-            <button
-              onClick={() => navigate("/community")}
-              className="hidden sm:flex items-center gap-1 text-[#1F6B78] hover:gap-2 transition-all cursor-pointer"
-              style={{
-                fontWeight: 600,
-                fontSize: isSenior ? 17 : 14,
-              }}
-            >
-              공지 전체 보기 <ArrowRight size={16} />
-            </button>
-          </div>
-
-          {isSenior && (
-            <button
-              onClick={() => alert(`대표전화: ${V.대표전화}`)}
-              className="flex items-center gap-2 mb-6 px-4 py-3 rounded-xl bg-[#F2EBDD] text-[#1F6B78] cursor-pointer"
-              style={{ fontWeight: 600, fontSize: 17 }}
-            >
-              <Phone size={18} /> 전화로 안내받기 ({V.대표전화})
-            </button>
-          )}
-
-          <div className="space-y-2 md:space-y-3">
-            {NOTICES_PREVIEW.map((n, i) => (
-              <div
-                key={i}
-                onClick={() => navigate("/community")}
-                className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl border border-[#E5E7EB] hover:bg-[#FAFAFA] transition-colors cursor-pointer ${isSenior ? "p-5" : ""}`}
-              >
-                <span
-                  className={`px-2.5 py-1 rounded-full text-xs shrink-0 ${
-                    n.cat === "필독"
-                      ? "bg-[#1F6B78] text-white"
-                      : n.cat === "건강모임"
-                        ? "bg-[#67B89A]/15 text-[#1F6B78]"
-                        : "bg-[#F2EBDD] text-[#374151]"
-                  }`}
-                  style={{ fontWeight: 600 }}
+              <p className="text-[#7A8584] mt-2">
+                어렵지 않습니다. 전화 한 통이면 시작됩니다.
+              </p>
+            </motion.div>
+          </AnimSection>
+          <AnimSection className="relative">
+            {/* Connection line */}
+            <div className="hidden md:block absolute top-[52px] left-[16%] right-[16%] h-[2px] bg-gradient-to-r from-[#1F4B43] via-[#6E958B] to-[#C87C5A]" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                {
+                  step: "01",
+                  title: "상담 요청",
+                  desc: "전화 또는 온라인으로 현재 상황을 알려주세요.",
+                  color: "#1F4B43",
+                  icon: PhoneCall,
+                },
+                {
+                  step: "02",
+                  title: "서비스 연결",
+                  desc: "필요한 진료·방문·돌봄 등 맞춤 안내를 합니다.",
+                  color: "#6E958B",
+                  icon: Activity,
+                },
+                {
+                  step: "03",
+                  title: "꾸준한 관리",
+                  desc: "일회성이 아닌 생활 속 건강관리를 이어갑니다.",
+                  color: "#C87C5A",
+                  icon: Shield,
+                },
+              ].map((s) => (
+                <motion.div
+                  key={s.step}
+                  variants={fadeUp}
+                  className="text-center"
                 >
-                  {n.cat}
-                </span>
-                <span
-                  className={`flex-1 text-[#111827] truncate ${isSenior ? "text-[18px]" : "text-sm"}`}
-                  style={{ fontWeight: 500 }}
-                >
-                  {n.title}
-                </span>
-                <span
-                  className={`text-[#6B7280] shrink-0 hidden sm:inline ${isSenior ? "text-[15px]" : "text-xs"}`}
-                >
-                  {n.date}
-                </span>
-                <ArrowRight
-                  size={16}
-                  className="text-[#6B7280] shrink-0 hidden sm:block"
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:gap-4">
-            <button
-              onClick={() => navigate("/community")}
-              className="w-full sm:w-auto px-6 py-3 min-h-[48px] rounded-full bg-[#1F6B78] text-white hover:bg-[#185A65] transition-colors cursor-pointer active:scale-[0.98]"
-              style={{
-                fontWeight: 600,
-                fontSize: isSenior ? 17 : 14,
-              }}
-            >
-              공지 전체 보기
-            </button>
-            <button
-              onClick={() => navigate("/community")}
-              className="w-full sm:w-auto px-6 py-3 min-h-[48px] rounded-full border border-[#1F6B78] text-[#1F6B78] hover:bg-[#1F6B78]/5 transition-colors cursor-pointer active:scale-[0.98]"
-              style={{
-                fontWeight: 600,
-                fontSize: isSenior ? 17 : 14,
-              }}
-            >
-              건강모임 일정 보기
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ Section H: 문의 + FAQ ═══ */}
-      <section
-        id="faq-section"
-        className={`${sectionPy}`}
-        style={{ backgroundColor: C.bg }}
-      >
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          {/* 문의 3채널 */}
-          <div className="text-center mb-8 md:mb-14">
-            <span
-              className="inline-block px-4 py-1.5 rounded-full bg-[#F2EBDD] text-[#1F6B78] text-sm mb-4"
-              style={{ fontWeight: 600 }}
-            >
-              문의하기
-            </span>
-            <h2
-              className={`${isSenior ? "text-[28px] md:text-[34px]" : "text-2xl md:text-3xl"} text-[#111827] mb-4`}
-              style={{ fontWeight: 700 }}
-            >
-              {isSenior
-                ? "가장 쉬운 방법으로 연락하세요."
-                : "궁금하면, 가장 쉬운 방법으로 연락하세요."}
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 max-w-3xl mx-auto mb-10 md:mb-16">
-            <button
-              onClick={() => alert(`대표전화: ${V.대표전화}`)}
-              className={`flex items-center gap-3 sm:flex-col sm:gap-3 p-4 sm:p-6 bg-white rounded-2xl border border-[#E5E7EB] hover:shadow-md transition-shadow sm:text-center cursor-pointer active:scale-[0.98] ${isSenior ? "p-5 sm:p-8" : ""}`}
-            >
-              <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-[#1F6B78] text-white flex items-center justify-center shrink-0">
-                <Phone size={20} />
-              </div>
-              <div className="flex flex-col sm:items-center gap-0.5">
-                <span
-                  className={`text-[#111827] ${isSenior ? "text-[18px] sm:text-[20px]" : "text-sm"}`}
-                  style={{ fontWeight: 600 }}
-                >
-                  전화하기
-                </span>
-                <span
-                  className={`text-[#9CA3AF] ${isSenior ? "text-[14px] sm:text-[16px]" : "text-xs"}`}
-                >
-                  {V.대표전화}
-                </span>
-              </div>
-            </button>
-            <button
-              onClick={() =>
-                alert(`카카오톡 채널: ${V.카카오채널}`)
-              }
-              className={`flex items-center gap-3 sm:flex-col sm:gap-3 p-4 sm:p-6 bg-white rounded-2xl border border-[#E5E7EB] hover:shadow-md transition-shadow sm:text-center cursor-pointer active:scale-[0.98] ${isSenior ? "p-5 sm:p-8" : ""}`}
-            >
-              <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-[#F2C94C] text-white flex items-center justify-center shrink-0">
-                <MessageCircle size={20} />
-              </div>
-              <div className="flex flex-col sm:items-center gap-0.5">
-                <span
-                  className={`text-[#111827] ${isSenior ? "text-[18px] sm:text-[20px]" : "text-sm"}`}
-                  style={{ fontWeight: 600 }}
-                >
-                  카카오톡 문의
-                </span>
-                <span
-                  className={`text-[#9CA3AF] ${isSenior ? "text-[14px] sm:text-[16px]" : "text-xs"}`}
-                >
-                  {V.카카오채널}
-                </span>
-              </div>
-            </button>
-            <button
-              onClick={() => navigate("/inquiries")}
-              className={`flex items-center gap-3 sm:flex-col sm:gap-3 p-4 sm:p-6 bg-white rounded-2xl border border-[#E5E7EB] hover:shadow-md transition-shadow sm:text-center cursor-pointer active:scale-[0.98] ${isSenior ? "p-5 sm:p-8" : ""}`}
-            >
-              <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-[#67B89A] text-white flex items-center justify-center shrink-0">
-                <Mail size={20} />
-              </div>
-              <div className="flex flex-col sm:items-center gap-0.5">
-                <span
-                  className={`text-[#111827] ${isSenior ? "text-[18px] sm:text-[20px]" : "text-sm"}`}
-                  style={{ fontWeight: 600 }}
-                >
-                  문의 남기기
-                </span>
-                <span
-                  className={`text-[#9CA3AF] ${isSenior ? "text-[14px] sm:text-[16px]" : "text-xs"}`}
-                >
-                  답변 받기
-                </span>
-              </div>
-            </button>
-          </div>
-
-          {/* FAQ */}
-          <div className="max-w-3xl mx-auto">
-            <h3
-              className={`text-center text-[#111827] mb-8 ${isSenior ? "text-[24px]" : "text-xl"}`}
-              style={{ fontWeight: 700 }}
-            >
-              자주 묻는 질문
-            </h3>
-            <div className="space-y-3">
-              {visibleFaq.map((f, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden"
-                >
-                  <button
-                    onClick={() =>
-                      setOpenFaq(openFaq === i ? null : i)
-                    }
-                    className={`w-full flex items-center justify-between p-5 text-left cursor-pointer ${isSenior ? "p-6" : ""}`}
-                  >
-                    <span
-                      className={`text-[#111827] pr-4 ${isSenior ? "text-[18px]" : "text-sm md:text-base"}`}
-                      style={{ fontWeight: 600 }}
-                    >
-                      {f.q}
-                    </span>
-                    <ChevronDown
-                      size={20}
-                      className={`text-[#6B7280] shrink-0 transition-transform ${openFaq === i ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                  {(openFaq === i ||
-                    (isSenior &&
-                      openFaq === null &&
-                      i < 3)) && (
+                  <div className="relative mx-auto mb-6">
                     <div
-                      className={`px-5 pb-5 ${isSenior ? "px-6 pb-6" : ""}`}
+                      className="w-[104px] h-[104px] rounded-full mx-auto flex flex-col items-center justify-center relative z-10"
+                      style={{ background: `${s.color}0D` }}
                     >
-                      <p
-                        className={`text-[#374151] leading-relaxed ${isSenior ? "text-[17px]" : "text-sm"}`}
+                      <span
+                        className="w-8 h-8 rounded-full bg-white border-2 flex items-center justify-center text-xs shadow absolute -top-4 left-1/2 -translate-x-1/2 z-20"
+                        style={{
+                          borderColor: s.color,
+                          color: s.color,
+                          fontWeight: 800,
+                        }}
                       >
-                        {isSenior ? f.a_senior : f.a_normal}
-                      </p>
+                        {s.step}
+                      </span>
+                      <div
+                        className="w-16 h-16 rounded-full flex items-center justify-center shadow-lg"
+                        style={{ background: s.color }}
+                      >
+                        <s.icon
+                          size={28}
+                          className="text-white"
+                        />
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                  <h3
+                    className="text-[#1F2623] mb-2 text-[20px]"
+                    style={{ fontWeight: 700 }}
+                  >
+                    {s.title}
+                  </h3>
+                  <p className="leading-relaxed max-w-[240px] mx-auto mx-[30px] my-[0px] text-[13px] text-[#516c6c] font-bold">
+                    {s.desc}
+                  </p>
+                </motion.div>
               ))}
             </div>
-            {!showAllFaq && FAQ_DATA.length > 6 && (
-              <div className="text-center mt-6">
-                <button
-                  onClick={() => setShowAllFaq(true)}
-                  className="px-6 py-3 rounded-full border border-[#1F6B78] text-[#1F6B78] hover:bg-[#1F6B78]/5 transition-colors cursor-pointer"
-                  style={{
-                    fontWeight: 600,
-                    fontSize: isSenior ? 17 : 14,
-                  }}
-                >
-                  더보기
-                </button>
-              </div>
-            )}
-          </div>
+            <div className="text-center mt-10">
+              <button
+                onClick={() => alert(`대표전화: ${V.대표전화}`)}
+                className="px-8 py-3.5 rounded-full bg-[#1F4B43] text-white hover:bg-[#2A6359] transition-colors text-sm cursor-pointer inline-flex items-center gap-2"
+                style={{ fontWeight: 600 }}
+              >
+                <Phone size={16} /> 지금 상담하기
+              </button>
+            </div>
+          </AnimSection>
         </div>
       </section>
 
-      {/* ═══ Bottom CTA (가입 재노출) ═══ */}
-      <section className="py-10 md:py-20 bg-[#0B1E2D]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2
-            className={`text-white mb-4 ${isSenior ? "text-[28px] md:text-[34px]" : "text-2xl md:text-3xl"}`}
-            style={{ fontWeight: 700 }}
-          >
-            {isSenior
-              ? "함께하면 더 든든합니다."
-              : "지역의 건강한 변화, 함께 시작하세요."}
-          </h2>
+      {/* ═══ CTA BAND ═══ */}
+      <section className="relative py-20 md:py-28 overflow-hidden">
+        <div className="absolute inset-0">
+          <ImageWithFallback
+            src={IMG.forest}
+            alt="강원 숲"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-[#1F4B43]/85" />
+        </div>
+        <div className="relative max-w-[900px] mx-auto px-5 sm:px-6 text-center">
+          <AnimSection>
+            <motion.div variants={fadeUp}>
+              <h2
+                className="text-white text-[24px] md:text-[34px] mb-4"
+                style={{
+                  fontFamily: "'Noto Serif KR', serif",
+                  fontWeight: 700,
+                  lineHeight: 1.35,
+                }}
+              >
+                함께 만드는 건강한 마을,
+                <br />
+                지금 참여해 주세요
+              </h2>
+              <p className="text-white/60 mb-8 max-w-lg mx-auto">
+                자원봉사, 후원, 조합원 가입으로 이웃의 건강을
+                함께 돌볼 수 있습니다.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Link
+                  to="/join"
+                  className="px-7 py-3.5 rounded-full bg-white text-[#1F4B43] hover:bg-[#F7F2E8] transition-colors text-sm"
+                  style={{ fontWeight: 700 }}
+                >
+                  조합원 가입
+                </Link>
+                <Link
+                  to="/volunteer"
+                  className="px-7 py-3.5 rounded-full bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-colors text-sm"
+                  style={{ fontWeight: 500 }}
+                >
+                  자원봉사 안내
+                </Link>
+                <Link
+                  to="/donate"
+                  className="px-7 py-3.5 rounded-full bg-[#C87C5A] text-white hover:bg-[#B56E4E] transition-colors text-sm"
+                  style={{ fontWeight: 600 }}
+                >
+                  후원하기
+                </Link>
+              </div>
+            </motion.div>
+          </AnimSection>
+        </div>
+      </section>
+
+      {/* ═══ FAQ ═══ */}
+      <section className="py-16 md:py-24 bg-white">
+        <div className="max-w-[800px] mx-auto px-5 sm:px-6">
+          <AnimSection>
+            <motion.div
+              variants={fadeUp}
+              className="text-center mb-10"
+            >
+              <span
+                className="inline-block px-3 py-1 rounded-md bg-[#1F4B43]/8 text-[#1F4B43] text-xs mb-4"
+                style={{
+                  fontWeight: 700,
+                  letterSpacing: "0.05em",
+                }}
+              >
+                FAQ
+              </span>
+              <h2
+                className="text-[#1F2623] text-xl md:text-2xl"
+                style={{
+                  fontFamily: "'Noto Serif KR', serif",
+                  fontWeight: 700,
+                }}
+              >
+                자주 묻는 질문
+              </h2>
+            </motion.div>
+          </AnimSection>
+          <AnimSection className="space-y-3">
+            {FAQ_DATA.map((faq, i) => (
+              <motion.div
+                key={i}
+                variants={fadeUp}
+                className={`rounded-xl border overflow-hidden transition-colors ${openFaq === i ? "border-[#1F4B43]/30 bg-[#F9FBF9]" : "border-[#E5E5E5]"}`}
+              >
+                <button
+                  onClick={() =>
+                    setOpenFaq(openFaq === i ? null : i)
+                  }
+                  className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left cursor-pointer"
+                >
+                  <span
+                    className="text-sm text-[#1F2623]"
+                    style={{ fontWeight: 600 }}
+                  >
+                    {faq.q}
+                  </span>
+                  <ChevronDown
+                    size={18}
+                    className={`text-[#999] shrink-0 transition-transform ${openFaq === i ? "rotate-180" : ""}`}
+                  />
+                </button>
+                <AnimatePresence>
+                  {openFaq === i && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <div className="px-5 pb-4">
+                        <p className="text-sm text-[#666] leading-relaxed">
+                          {faq.a}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            ))}
+          </AnimSection>
+        </div>
+      </section>
+
+      {/* ═══ PARTNER LOGOS ═══ */}
+      <section className="py-10 md:py-14 bg-[#F9F8F5] border-t border-[#E5E5E5]">
+        <div className="max-w-[1000px] mx-auto px-5 sm:px-6 text-center">
           <p
-            className={`text-white/60 mb-8 md:mb-10 leading-relaxed ${isSenior ? "text-[18px]" : ""}`}
+            className="text-xs text-[#999] mb-6 tracking-wide"
+            style={{ fontWeight: 500 }}
           >
-            {isSenior
-              ? "조합원이 되어 우리 동네 건강을 같이 챙겨요."
-              : "조합원 가입으로 더 가깝고, 더 따뜻한 의료·돌봄을 경험하세요."}
+            함께하는 기관
           </p>
-          <div className="flex flex-col items-center justify-center gap-3 md:flex-row md:gap-4">
-            <button
-              onClick={() => navigate("/join")}
-              className="w-full md:w-auto px-8 py-4 min-h-[52px] rounded-full bg-white text-[#1F6B78] hover:bg-gray-50 transition-colors cursor-pointer shadow-lg active:scale-[0.98]"
-              style={{
-                fontWeight: 700,
-                fontSize: isSenior ? 20 : 18,
-              }}
-            >
-              조합원 가입하기
-            </button>
-            <button
-              onClick={() => alert(`대표전화: ${V.대표전화}`)}
-              className="w-full md:w-auto px-8 py-4 min-h-[52px] rounded-full border border-white/20 text-white hover:bg-white/5 transition-colors cursor-pointer active:scale-[0.98]"
-              style={{
-                fontWeight: 600,
-                fontSize: isSenior ? 20 : 18,
-              }}
-            >
-              전화 문의 ({V.대표전화})
-            </button>
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+            {[
+              "보건복지부",
+              "강원특별자치도",
+              "원주시",
+              "국민건강보험공단",
+              "한국사회적기업진흥원",
+            ].map((name) => (
+              <span
+                key={name}
+                className="text-sm text-[#BBB]"
+                style={{ fontWeight: 600 }}
+              >
+                {name}
+              </span>
+            ))}
           </div>
         </div>
       </section>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 
 interface SeniorModeContextType {
   isSenior: boolean;
@@ -12,6 +12,15 @@ const SeniorModeContext = createContext<SeniorModeContextType>({
 
 export function SeniorModeProvider({ children }: { children: ReactNode }) {
   const [isSenior, setIsSenior] = useState(false);
+
+  useEffect(() => {
+    if (isSenior) {
+      document.documentElement.classList.add("senior-mode");
+    } else {
+      document.documentElement.classList.remove("senior-mode");
+    }
+  }, [isSenior]);
+
   return (
     <SeniorModeContext.Provider value={{ isSenior, toggleSenior: () => setIsSenior((p) => !p) }}>
       {children}

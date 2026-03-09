@@ -1,115 +1,429 @@
-import { useState } from "react";
-import { Search, Phone, MapPin, CalendarDays, User, Clock, FileText, X, ChevronRight, Download, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { StatusBadge, Badge } from "../../components/admin/AdminBadge";
+import { useMemo, useState } from "react";
+import {
+  AlertTriangle,
+  CalendarDays,
+  CheckCircle2,
+  ChevronRight,
+  Download,
+  Loader2,
+  Search,
+  User,
+} from "lucide-react";
+import { Badge, StatusBadge } from "../../components/admin/AdminBadge";
 import { AdminDetailPanel, DetailField, DetailTabs } from "../../components/admin/AdminDetailPanel";
+import {
+  useAssignServiceRequestMutation,
+  useBulkAssignServiceRequestsMutation,
+  useBulkScheduleServiceRequestsMutation,
+  useBulkStatusServiceRequestsMutation,
+  useScheduleServiceRequestMutation,
+  useServiceRequestsQuery,
+  useStaffQuery,
+  useUpdateServiceRequestStatusMutation,
+} from "../../hooks/admin/useAdminQueries";
 
-const SERVICES = [
-  { id: "SVC-2026-089", name: "김영희", phone: "010-1111-2222", service: "재택의료", type: "방문진료", status: "접수됨", date: "2026-03-06", hope: "ASAP", area: "횡성읍", staff: null, priority: "긴급", sla: "24시간 내 확인" },
-  { id: "SVC-2026-088", name: "박수진", phone: "010-3333-4444", service: "마을돌봄", type: "정기돌봄", status: "확인중", date: "2026-03-05", hope: "3/10 오전", area: "우천면", staff: "상담사 최OO", priority: "보통", sla: "" },
-  { id: "SVC-2026-087", name: "이철수", phone: "010-5555-6666", service: "건강공동체", type: "건강교실", status: "일정확정", date: "2026-03-04", hope: "3/15 14:00", area: "횡성읍", staff: "강사 박OO", priority: "보통", sla: "" },
-  { id: "SVC-2026-086", name: "최미영", phone: "010-7777-8888", service: "재택의료", type: "재활치료", status: "진행중", date: "2026-03-04", hope: "3/6 10:00", area: "갑천면", staff: "치료사 김OO", priority: "보통", sla: "" },
-  { id: "SVC-2026-085", name: "정태호", phone: "010-9999-0000", service: "마을돌봄", type: "생활지원", status: "일정대기", date: "2026-03-03", hope: "3/8 오후", area: "공근면", staff: null, priority: "보통", sla: "담당자 미배정" },
-  { id: "SVC-2026-084", name: "한지은", phone: "010-2345-6789", service: "재택의료", type: "방문간호", status: "완료", date: "2026-03-02", hope: "3/4 09:00", area: "횡성읍", staff: "간호사 정OO", priority: "보통", sla: "" },
-  { id: "SVC-2026-083", name: "오상호", phone: "010-3456-7890", service: "건강공동체", type: "운동프로그램", status: "완료", date: "2026-03-01", hope: "3/3 15:00", area: "청일면", staff: "강사 송OO", priority: "보통", sla: "" },
-  { id: "SVC-2026-082", name: "윤미래", phone: "010-4567-1234", service: "마을돌봄", type: "정서지원", status: "보류", date: "2026-02-28", hope: "미정", area: "안흥면", staff: null, priority: "보통", sla: "" },
+const VIEW_OPTIONS = ["list", "board", "calendar"] as const;
+type ViewOption = (typeof VIEW_OPTIONS)[number];
+
+type ServiceRequestItem = {
+  id: number;
+  requestNo: string;
+  applicantName: string;
+  applicantPhone: string;
+  serviceTitle: string;
+  requestedDate: string | null;
+  requestedTimeSlot: string | null;
+  region: string | null;
+  priority: string;
+  status: string;
+  assignedStaffId: number | null;
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
+  customerNote: string | null;
+  internalNote: string | null;
+  createdAt: string;
+};
+
+type StaffItem = {
+  id: number;
+  name: string;
+  roleType: string;
+};
+
+const STATUS_OPTIONS = [
+  { value: "", label: "전체" },
+  { value: "received", label: "접수" },
+  { value: "needs_info", label: "추가정보" },
+  { value: "waiting_schedule", label: "일정대기" },
+  { value: "scheduled", label: "일정확정" },
+  { value: "in_progress", label: "진행중" },
+  { value: "completed", label: "완료" },
+  { value: "cancelled_admin", label: "취소(관리)" },
+  { value: "cancelled_user", label: "취소(고객)" },
+] as const;
+
+const PRIORITY_OPTIONS = [
+  { value: "", label: "우선순위 전체" },
+  { value: "normal", label: "보통" },
+  { value: "high", label: "높음" },
+  { value: "urgent", label: "긴급" },
 ];
 
-const STATUSES = ["전체", "접수됨", "확인중", "일정대기", "일정확정", "진행중", "완료", "보류", "취소"];
-const STAFF = ["미배정", "의사 정OO", "간호사 정OO", "치료사 김OO", "돌봄사 이OO", "상담사 최OO", "강사 박OO", "강사 송OO"];
-const CHECKLIST = [
-  { label: "연락 완료", done: true },
-  { label: "준비물 안내", done: true },
-  { label: "주소 확인", done: false },
-  { label: "방문 완료", done: false },
-  { label: "결과 기록", done: false },
-];
+const BOARD_STATUSES = ["received", "waiting_schedule", "scheduled", "in_progress", "completed"];
+
+function statusLabel(value: string) {
+  const found = STATUS_OPTIONS.find((opt) => opt.value === value);
+  return found?.label ?? value;
+}
+
+function priorityLabel(value: string) {
+  if (value === "urgent") return "긴급";
+  if (value === "high") return "높음";
+  return "보통";
+}
+
+function toDateText(value: string | null | undefined) {
+  if (!value) return "-";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "-";
+  return parsed.toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function toInputDateTime(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 export function AdminServices() {
-  const [view, setView] = useState<"list" | "board" | "calendar">("list");
-  const [statusFilter, setStatusFilter] = useState("전체");
+  const [view, setView] = useState<ViewOption>("list");
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("");
+  const [unassignedOnly, setUnassignedOnly] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [detailTab, setDetailTab] = useState("요청 내용");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const filtered = SERVICES.filter(
-    (s) =>
-      (statusFilter === "전체" || s.status === statusFilter) &&
-      (search === "" || s.name.includes(search) || s.id.includes(search) || s.area.includes(search) || s.service.includes(search))
-  );
+  const [editStatus, setEditStatus] = useState("received");
+  const [editStaffId, setEditStaffId] = useState<number | "">("");
+  const [editReason, setEditReason] = useState("");
+  const [scheduleStart, setScheduleStart] = useState("");
+  const [scheduleEnd, setScheduleEnd] = useState("");
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const svc = selectedId ? SERVICES.find((s) => s.id === selectedId) : null;
+  const requestQuery = useServiceRequestsQuery({
+    page: 1,
+    pageSize: 300,
+    status: statusFilter || undefined,
+    search: search || undefined,
+    priority: priorityFilter || undefined,
+    unassignedOnly,
+  });
+  const staffQuery = useStaffQuery({ page: 1, pageSize: 200, activeOnly: true });
 
-  // Board view grouping
-  const boardGroups = ["접수됨", "확인중", "일정대기", "일정확정", "진행중", "완료"];
+  const assignMutation = useAssignServiceRequestMutation();
+  const statusMutation = useUpdateServiceRequestStatusMutation();
+  const scheduleMutation = useScheduleServiceRequestMutation();
+  const bulkAssignMutation = useBulkAssignServiceRequestsMutation();
+  const bulkStatusMutation = useBulkStatusServiceRequestsMutation();
+  const bulkScheduleMutation = useBulkScheduleServiceRequestsMutation();
+
+  const rows = (requestQuery.data ?? []) as ServiceRequestItem[];
+  const staff = (staffQuery.data ?? []) as StaffItem[];
+
+  const staffNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    staff.forEach((item) => map.set(item.id, `${item.name} (${item.roleType})`));
+    return map;
+  }, [staff]);
+
+  const selectedRow = selectedId == null ? null : rows.find((row) => row.id === selectedId) ?? null;
+
+  const groupedRows = useMemo(() => {
+    const map = new Map<string, ServiceRequestItem[]>();
+    BOARD_STATUSES.forEach((status) => map.set(status, []));
+    rows.forEach((row) => {
+      if (!map.has(row.status)) map.set(row.status, []);
+      map.get(row.status)?.push(row);
+    });
+    return map;
+  }, [rows]);
+
+  const calendarGroups = useMemo(() => {
+    const map = new Map<string, ServiceRequestItem[]>();
+    rows.forEach((row) => {
+      const key = row.requestedDate || row.scheduledStart || "일정 미지정";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)?.push(row);
+    });
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [rows]);
+
+  const selectedCount = selectedIds.size;
+
+  const refreshAll = async () => {
+    await Promise.all([requestQuery.refetch(), staffQuery.refetch()]);
+  };
+
+  const selectAll = (checked: boolean) => {
+    if (!checked) {
+      setSelectedIds(new Set());
+      return;
+    }
+    setSelectedIds(new Set(rows.map((row) => row.id)));
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const onPickDetail = (row: ServiceRequestItem) => {
+    setSelectedId(row.id);
+    setDetailTab("요청 내용");
+    setEditStatus(row.status);
+    setEditStaffId(row.assignedStaffId ?? "");
+    setEditReason("");
+    setScheduleStart(toInputDateTime(row.scheduledStart));
+    setScheduleEnd(toInputDateTime(row.scheduledEnd));
+    setActionMessage(null);
+  };
+
+  const handleAssign = async (requestId: number, staffId: number) => {
+    setSaving(true);
+    setActionMessage(null);
+    try {
+      await assignMutation(requestId, staffId);
+      await refreshAll();
+      setActionMessage("담당자 배정을 완료했습니다.");
+    } catch (e) {
+      setActionMessage(e instanceof Error ? e.message : "담당자 배정에 실패했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleStatus = async (requestId: number, status: string, reason?: string) => {
+    setSaving(true);
+    setActionMessage(null);
+    try {
+      await statusMutation(requestId, status, reason);
+      await refreshAll();
+      setActionMessage("상태를 변경했습니다.");
+    } catch (e) {
+      setActionMessage(e instanceof Error ? e.message : "상태 변경에 실패했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSchedule = async (requestId: number) => {
+    if (!scheduleStart || !scheduleEnd) {
+      setActionMessage("시작/종료 시간을 입력해 주세요.");
+      return;
+    }
+    setSaving(true);
+    setActionMessage(null);
+    try {
+      await scheduleMutation(requestId, {
+        startAt: new Date(scheduleStart).toISOString(),
+        endAt: new Date(scheduleEnd).toISOString(),
+        staffId: editStaffId === "" ? undefined : editStaffId,
+        locationSummary: selectedRow?.region || undefined,
+      });
+      await refreshAll();
+      setActionMessage("일정을 확정했습니다.");
+    } catch (e) {
+      setActionMessage(e instanceof Error ? e.message : "일정 확정에 실패했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleBulkAssign = async () => {
+    if (editStaffId === "" || selectedCount === 0) return;
+    setSaving(true);
+    setActionMessage(null);
+    try {
+      await bulkAssignMutation([...selectedIds], editStaffId);
+      await refreshAll();
+      setActionMessage(`${selectedCount}건 담당자 배정 완료`);
+      setSelectedIds(new Set());
+    } catch (e) {
+      setActionMessage(e instanceof Error ? e.message : "일괄 배정에 실패했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleBulkStatus = async (status: string) => {
+    if (selectedCount === 0) return;
+    setSaving(true);
+    setActionMessage(null);
+    try {
+      await bulkStatusMutation([...selectedIds], status, editReason || undefined);
+      await refreshAll();
+      setActionMessage(`${selectedCount}건 상태 변경 완료`);
+      setSelectedIds(new Set());
+    } catch (e) {
+      setActionMessage(e instanceof Error ? e.message : "일괄 상태 변경에 실패했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleBulkSchedule = async () => {
+    if (!scheduleStart || !scheduleEnd || selectedCount === 0) {
+      setActionMessage("일괄 일정 확정에 필요한 값이 부족합니다.");
+      return;
+    }
+    setSaving(true);
+    setActionMessage(null);
+    try {
+      await bulkScheduleMutation([...selectedIds], {
+        startAt: new Date(scheduleStart).toISOString(),
+        endAt: new Date(scheduleEnd).toISOString(),
+        staffId: editStaffId === "" ? undefined : editStaffId,
+      });
+      await refreshAll();
+      setActionMessage(`${selectedCount}건 일정 확정 완료`);
+      setSelectedIds(new Set());
+    } catch (e) {
+      setActionMessage(e instanceof Error ? e.message : "일괄 일정 확정에 실패했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const exportCsv = () => {
+    const base = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
+    const q = new URLSearchParams();
+    if (statusFilter) q.set("status", statusFilter);
+    if (search) q.set("search", search);
+    if (priorityFilter) q.set("priority", priorityFilter);
+    if (unassignedOnly) q.set("unassigned_only", "true");
+    const url = `${base}/admin/services/export${q.toString() ? `?${q.toString()}` : ""}`;
+    window.open(url, "_blank");
+  };
 
   return (
     <div className="flex gap-6 h-full">
-      {/* Main */}
-      <div className={`flex-1 min-w-0 ${svc ? "hidden xl:block" : ""}`}>
-        {/* Toolbar */}
-        <div className="bg-white rounded-xl p-4 shadow-sm mb-4">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
-            <div className="flex gap-1.5">
-              {(["list", "board", "calendar"] as const).map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
-                  className={`px-3 py-1.5 rounded-lg text-xs cursor-pointer ${
-                    view === v ? "bg-[#1F6B78] text-white" : "bg-gray-50 text-gray-500 hover:bg-gray-100"
-                  }`}
-                  style={{ fontWeight: 600 }}
-                >
-                  {v === "list" ? "리스트" : v === "board" ? "보드" : "캘린더"}
-                </button>
-              ))}
-            </div>
-            <div className="relative flex-1 w-full lg:max-w-sm">
+      <div className={`flex-1 min-w-0 ${selectedRow ? "hidden xl:block" : ""}`}>
+        <div className="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {VIEW_OPTIONS.map((item) => (
+              <button
+                key={item}
+                onClick={() => setView(item)}
+                className={`px-3 py-1.5 rounded-lg text-xs cursor-pointer ${
+                  view === item ? "bg-[#1F6B78] text-white" : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                }`}
+                style={{ fontWeight: view === item ? 600 : 400 }}
+              >
+                {item === "list" ? "리스트" : item === "board" ? "보드" : "캘린더"}
+              </button>
+            ))}
+
+            <label className="ml-auto flex items-center gap-1.5 text-xs text-gray-500">
+              <input
+                type="checkbox"
+                checked={unassignedOnly}
+                onChange={(e) => setUnassignedOnly(e.target.checked)}
+                className="accent-[#1F6B78]"
+              />
+              미배정만
+            </label>
+
+            <button
+              onClick={exportCsv}
+              className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 cursor-pointer flex items-center gap-1"
+            >
+              <Download size={13} /> 엑셀(CSV)
+            </button>
+          </div>
+
+          <div className="flex flex-col lg:flex-row gap-2 lg:items-center">
+            <div className="relative flex-1 lg:max-w-md">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="이름, 접수번호, 지역, 서비스..."
-                className="w-full pl-9 pr-4 py-2 rounded-lg bg-[#F8F9FA] border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B78]/20"
+                placeholder="요청번호, 이름, 연락처, 지역, 서비스 검색..."
+                className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#F8F9FA] border border-gray-200 text-sm"
               />
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {STATUSES.slice(0, 7).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className={`px-2.5 py-1.5 rounded-lg text-xs cursor-pointer ${
-                    statusFilter === s ? "bg-[#1F6B78] text-white" : "bg-gray-50 text-gray-500 hover:bg-gray-100"
-                  }`}
-                  style={{ fontWeight: statusFilter === s ? 600 : 400 }}
-                >
-                  {s}
-                </button>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm"
+            >
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt.value || "all"} value={opt.value}>{opt.label}</option>
               ))}
-            </div>
-            <div className="flex gap-2 ml-auto">
-              <button className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs text-gray-500 cursor-pointer flex items-center gap-1">
-                <Download size={13} /> 내보내기
-              </button>
-            </div>
+            </select>
+
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm"
+            >
+              {PRIORITY_OPTIONS.map((opt) => (
+                <option key={opt.value || "all"} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
           </div>
         </div>
 
-        {/* Bulk */}
-        {selected.size > 0 && (
-          <div className="bg-[#1F6B78] rounded-xl px-4 py-2.5 mb-4 flex items-center gap-3 text-white text-sm">
-            <span style={{ fontWeight: 600 }}>{selected.size}건 선택</span>
-            <div className="flex gap-2 ml-auto">
-              <button className="px-3 py-1.5 rounded-lg bg-white/20 text-xs cursor-pointer">담당자 배정</button>
-              <button className="px-3 py-1.5 rounded-lg bg-white/20 text-xs cursor-pointer">상태 변경</button>
-              <button className="px-3 py-1.5 rounded-lg bg-white/20 text-xs cursor-pointer">일정 확정</button>
-              <button onClick={() => setSelected(new Set())} className="px-3 py-1.5 rounded-lg bg-white/10 text-xs cursor-pointer">해제</button>
-            </div>
+        {selectedCount > 0 && (
+          <div className="bg-[#1F6B78] rounded-xl px-4 py-2.5 mb-4 text-white text-xs flex items-center gap-2 flex-wrap">
+            <span style={{ fontWeight: 700 }}>{selectedCount}건 선택됨</span>
+            <select
+              value={editStaffId}
+              onChange={(e) => setEditStaffId(e.target.value ? Number(e.target.value) : "")}
+              className="px-2 py-1 rounded bg-white text-[#111827]"
+            >
+              <option value="">담당자 선택</option>
+              {staff.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+            <button onClick={() => void handleBulkAssign()} className="px-2 py-1 rounded bg-white/20 hover:bg-white/30">일괄 배정</button>
+            <button onClick={() => void handleBulkStatus("scheduled")} className="px-2 py-1 rounded bg-white/20 hover:bg-white/30">일괄 상태(일정확정)</button>
+            <button onClick={() => void handleBulkSchedule()} className="px-2 py-1 rounded bg-white/20 hover:bg-white/30">일괄 일정 확정</button>
+            <button onClick={() => setSelectedIds(new Set())} className="px-2 py-1 rounded bg-white/10 hover:bg-white/20">선택 해제</button>
           </div>
         )}
 
-        {/* List View */}
-        {view === "list" && (
+        {actionMessage && (
+          <div className="mb-4 rounded-lg border border-[#1F6B78]/20 bg-[#1F6B78]/5 px-3 py-2 text-sm text-[#1F6B78]">
+            {actionMessage}
+          </div>
+        )}
+
+        {requestQuery.loading && (
+          <div className="bg-white rounded-xl shadow-sm p-10 text-sm text-gray-500">서비스 요청 목록을 불러오는 중...</div>
+        )}
+        {!requestQuery.loading && requestQuery.error && (
+          <div className="bg-white rounded-xl shadow-sm p-10 text-sm text-red-500">{requestQuery.error}</div>
+        )}
+        {!requestQuery.loading && !requestQuery.error && rows.length === 0 && (
+          <div className="bg-white rounded-xl shadow-sm p-10 text-sm text-gray-400">조회된 요청이 없습니다.</div>
+        )}
+
+        {!requestQuery.loading && !requestQuery.error && rows.length > 0 && view === "list" && (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -118,114 +432,89 @@ export function AdminServices() {
                     <th className="w-10 p-3">
                       <input
                         type="checkbox"
-                        onChange={() => {
-                          if (selected.size === filtered.length) setSelected(new Set());
-                          else setSelected(new Set(filtered.map((s) => s.id)));
-                        }}
-                        checked={filtered.length > 0 && selected.size === filtered.length}
-                        className="accent-[#1F6B78] cursor-pointer"
+                        checked={rows.length > 0 && selectedCount === rows.length}
+                        onChange={(e) => selectAll(e.target.checked)}
+                        className="accent-[#1F6B78]"
                       />
                     </th>
-                    <th className="text-left px-4 py-3 text-xs text-gray-400" style={{ fontWeight: 600 }}>요청</th>
-                    <th className="text-left px-4 py-3 text-xs text-gray-400 hidden md:table-cell" style={{ fontWeight: 600 }}>서비스</th>
-                    <th className="text-left px-4 py-3 text-xs text-gray-400 hidden lg:table-cell" style={{ fontWeight: 600 }}>지역</th>
-                    <th className="text-left px-4 py-3 text-xs text-gray-400" style={{ fontWeight: 600 }}>상태</th>
-                    <th className="text-left px-4 py-3 text-xs text-gray-400 hidden lg:table-cell" style={{ fontWeight: 600 }}>담당자</th>
-                    <th className="text-left px-4 py-3 text-xs text-gray-400 hidden xl:table-cell" style={{ fontWeight: 600 }}>희망일시</th>
-                    <th className="w-10"></th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-400">요청</th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-400 hidden md:table-cell">서비스</th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-400 hidden lg:table-cell">지역</th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-400">상태</th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-400 hidden xl:table-cell">담당자</th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-400 hidden xl:table-cell">일정</th>
+                    <th className="w-10" />
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((s) => (
+                  {rows.map((row) => (
                     <tr
-                      key={s.id}
-                      onClick={() => { setSelectedId(s.id); setDetailTab("요청 내용"); }}
-                      className={`border-t border-gray-50 cursor-pointer transition-colors ${
-                        selectedId === s.id ? "bg-[#1F6B78]/5" : "hover:bg-[#F8F9FA]/50"
-                      }`}
+                      key={row.id}
+                      onClick={() => onPickDetail(row)}
+                      className={`border-t border-gray-50 cursor-pointer ${selectedId === row.id ? "bg-[#1F6B78]/5" : "hover:bg-[#F8F9FA]/50"}`}
                     >
                       <td className="w-10 p-3" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
-                          checked={selected.has(s.id)}
-                          onChange={() => {
-                            const n = new Set(selected);
-                            if (n.has(s.id)) n.delete(s.id); else n.add(s.id);
-                            setSelected(n);
-                          }}
-                          className="accent-[#1F6B78] cursor-pointer"
+                          checked={selectedIds.has(row.id)}
+                          onChange={() => toggleSelect(row.id)}
+                          className="accent-[#1F6B78]"
                         />
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          {s.priority === "긴급" && <Badge variant="accent">긴급</Badge>}
+                          {row.priority === "urgent" && <Badge variant="accent">긴급</Badge>}
                           <div>
-                            <p className="text-[#111827]" style={{ fontWeight: 500 }}>{s.name}</p>
-                            <p className="text-xs text-gray-400">{s.id} · {s.date}</p>
+                            <p className="text-[#111827]" style={{ fontWeight: 600 }}>{row.applicantName}</p>
+                            <p className="text-xs text-gray-400">{row.requestNo}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
-                        <p className="text-[#374151]">{s.service}</p>
-                        <p className="text-xs text-gray-400">{s.type}</p>
+                        <p className="text-[#374151]">{row.serviceTitle}</p>
+                        <p className="text-xs text-gray-400">희망: {row.requestedTimeSlot || "-"}</p>
                       </td>
-                      <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{s.area}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1">
-                          <StatusBadge status={s.status} />
-                          {s.sla && <span className="text-[10px] text-gray-400">{s.sla}</span>}
-                        </div>
+                      <td className="px-4 py-3 text-gray-500 hidden lg:table-cell">{row.region || "-"}</td>
+                      <td className="px-4 py-3"><StatusBadge status={statusLabel(row.status)} /></td>
+                      <td className="px-4 py-3 hidden xl:table-cell text-gray-500">
+                        {row.assignedStaffId ? staffNameById.get(row.assignedStaffId) || `#${row.assignedStaffId}` : "미배정"}
                       </td>
-                      <td className="px-4 py-3 hidden lg:table-cell">
-                        <span className={`text-sm ${s.staff ? "text-[#374151]" : "text-gray-400 italic"}`}>
-                          {s.staff || "미배정"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-400 hidden xl:table-cell">{s.hope}</td>
+                      <td className="px-4 py-3 hidden xl:table-cell text-gray-500">{toDateText(row.scheduledStart)}</td>
                       <td className="px-4 py-3"><ChevronRight size={14} className="text-gray-300" /></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <div className="px-4 py-3 border-t border-gray-100 text-xs text-gray-400">{filtered.length}건</div>
+            <div className="px-4 py-3 border-t border-gray-100 text-xs text-gray-400">총 {rows.length}건</div>
           </div>
         )}
 
-        {/* Board View */}
-        {view === "board" && (
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {boardGroups.map((status) => {
-              const items = SERVICES.filter((s) => s.status === status);
+        {!requestQuery.loading && !requestQuery.error && rows.length > 0 && view === "board" && (
+          <div className="flex gap-4 overflow-x-auto pb-2">
+            {BOARD_STATUSES.map((status) => {
+              const colRows = groupedRows.get(status) ?? [];
               return (
-                <div key={status} className="min-w-[260px] w-[260px] shrink-0">
-                  <div className="flex items-center gap-2 mb-3 px-1">
-                    <StatusBadge status={status} />
-                    <span className="text-xs text-gray-400">{items.length}</span>
+                <div key={status} className="min-w-[250px] w-[250px] shrink-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <StatusBadge status={statusLabel(status)} />
+                    <span className="text-xs text-gray-400">{colRows.length}</span>
                   </div>
                   <div className="space-y-2">
-                    {items.map((s) => (
+                    {colRows.map((row) => (
                       <div
-                        key={s.id}
-                        onClick={() => { setSelectedId(s.id); setDetailTab("요청 내용"); }}
-                        className="bg-white rounded-xl p-3 shadow-sm hover:shadow-md cursor-pointer transition-all"
+                        key={row.id}
+                        onClick={() => onPickDetail(row)}
+                        className="rounded-xl bg-white p-3 shadow-sm cursor-pointer hover:shadow-md"
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs text-gray-400">{s.id}</span>
-                          {s.priority === "긴급" && <Badge variant="accent">긴급</Badge>}
-                        </div>
-                        <p className="text-sm text-[#111827] mb-1" style={{ fontWeight: 600 }}>{s.name}</p>
-                        <p className="text-xs text-gray-500">{s.service} · {s.type}</p>
-                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-                          <span className="text-xs text-gray-400">{s.area}</span>
-                          <span className={`text-xs ${s.staff ? "text-[#1F6B78]" : "text-gray-300 italic"}`}>
-                            {s.staff || "미배정"}
-                          </span>
-                        </div>
+                        <p className="text-xs text-gray-400">{row.requestNo}</p>
+                        <p className="text-sm text-[#111827] mt-1" style={{ fontWeight: 700 }}>{row.applicantName}</p>
+                        <p className="text-xs text-gray-500 mt-1">{row.serviceTitle}</p>
+                        <p className="text-xs text-gray-400 mt-1">{row.region || "지역 미지정"}</p>
                       </div>
                     ))}
-                    {items.length === 0 && (
-                      <div className="text-center py-8 text-xs text-gray-300">없음</div>
+                    {colRows.length === 0 && (
+                      <div className="text-xs text-gray-300 py-6 text-center">비어 있음</div>
                     )}
                   </div>
                 </div>
@@ -234,165 +523,169 @@ export function AdminServices() {
           </div>
         )}
 
-        {/* Calendar View */}
-        {view === "calendar" && (
-          <div className="bg-white rounded-xl p-5 shadow-sm">
-            <div className="text-center mb-4">
-              <h3 className="text-sm text-[#111827]" style={{ fontWeight: 700 }}>2026년 3월</h3>
-            </div>
-            <div className="grid grid-cols-7 gap-1 text-center text-xs text-gray-400 mb-2">
-              {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
-                <div key={d} className="py-2" style={{ fontWeight: 600 }}>{d}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {Array.from({ length: 31 + 6 }, (_, i) => {
-                const day = i - 5;
-                if (day < 1 || day > 31) return <div key={i} />;
-                const apps = SERVICES.filter((s) => s.date === `2026-03-${String(day).padStart(2, "0")}`);
-                const isToday = day === 6;
-                return (
-                  <div
-                    key={i}
-                    className={`min-h-[70px] p-1 rounded-lg border text-xs ${
-                      isToday ? "border-[#1F6B78] bg-[#1F6B78]/5" : "border-gray-100"
-                    }`}
-                  >
-                    <div className={`mb-1 ${isToday ? "text-[#1F6B78]" : "text-gray-400"}`} style={{ fontWeight: isToday ? 700 : 400 }}>
-                      {day}
-                    </div>
-                    {apps.map((a) => (
-                      <div
-                        key={a.id}
-                        onClick={() => { setSelectedId(a.id); setDetailTab("요청 내용"); }}
-                        className="px-1 py-0.5 mb-0.5 rounded text-[10px] bg-[#1F6B78]/10 text-[#1F6B78] truncate cursor-pointer hover:bg-[#1F6B78]/20"
+        {!requestQuery.loading && !requestQuery.error && rows.length > 0 && view === "calendar" && (
+          <div className="bg-white rounded-xl shadow-sm p-4">
+            <div className="space-y-4">
+              {calendarGroups.map(([dateKey, dateRows]) => (
+                <div key={dateKey} className="rounded-lg border border-gray-100">
+                  <div className="px-3 py-2 border-b border-gray-100 bg-[#F8F9FA] text-sm text-[#111827]" style={{ fontWeight: 700 }}>
+                    {dateKey === "일정 미지정" ? "일정 미지정" : toDateText(dateKey)}
+                  </div>
+                  <div className="divide-y divide-gray-50">
+                    {dateRows.map((row) => (
+                      <button
+                        key={row.id}
+                        onClick={() => onPickDetail(row)}
+                        className="w-full text-left px-3 py-2 hover:bg-[#F8F9FA]"
                       >
-                        {a.name} · {a.type}
-                      </div>
+                        <p className="text-sm text-[#111827]" style={{ fontWeight: 600 }}>{row.applicantName} · {row.serviceTitle}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {row.requestNo} · {statusLabel(row.status)} · {row.region || "지역 미지정"}
+                        </p>
+                      </button>
                     ))}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
         )}
       </div>
 
-      {/* Detail Panel */}
-      {svc && (
+      {selectedRow && (
         <AdminDetailPanel title="서비스 요청 상세" onClose={() => setSelectedId(null)}>
-          {/* Summary */}
           <div className="flex items-center gap-2 flex-wrap">
-            <StatusBadge status={svc.status} size="md" />
-            {svc.priority === "긴급" && <Badge variant="accent">긴급</Badge>}
-            {!svc.staff && <Badge variant="accent"><AlertTriangle size={11} /> 미배정</Badge>}
+            <StatusBadge status={statusLabel(selectedRow.status)} size="md" />
+            <Badge variant={selectedRow.priority === "urgent" ? "accent" : "neutral"}>{priorityLabel(selectedRow.priority)}</Badge>
+            {!selectedRow.assignedStaffId && (
+              <Badge variant="accent"><AlertTriangle size={11} /> 미배정</Badge>
+            )}
           </div>
 
           <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2"><User size={14} className="text-gray-400" /><span className="text-[#111827]" style={{ fontWeight: 500 }}>{svc.name}</span></div>
-            <div className="flex items-center gap-2"><Phone size={14} className="text-gray-400" /><span className="text-gray-500">{svc.phone}</span></div>
-            <div className="flex items-center gap-2"><MapPin size={14} className="text-gray-400" /><span className="text-gray-500">{svc.area}</span></div>
-            <div className="flex items-center gap-2"><CalendarDays size={14} className="text-gray-400" /><span className="text-gray-500">희망: {svc.hope}</span></div>
+            <div className="flex items-center gap-2"><User size={14} className="text-gray-400" /><span className="text-[#111827]" style={{ fontWeight: 600 }}>{selectedRow.applicantName}</span></div>
+            <div className="text-gray-500">{selectedRow.requestNo} · {selectedRow.applicantPhone}</div>
+            <div className="text-gray-500">{selectedRow.serviceTitle} · {selectedRow.region || "지역 미지정"}</div>
           </div>
 
           <DetailTabs
-            tabs={["요청 내용", "운영 처리", "내부 메모", "연락 로그"]}
+            tabs={["요청 내용", "상태/배정", "일정 확정"]}
             active={detailTab}
             onChange={setDetailTab}
           />
 
           {detailTab === "요청 내용" && (
-            <div className="space-y-4">
-              <DetailField label="서비스 종류">
-                <p className="text-sm text-[#374151]">{svc.service} — {svc.type}</p>
-              </DetailField>
-              <DetailField label="신청일">
-                <p className="text-sm text-[#374151]">{svc.date}</p>
-              </DetailField>
-              <DetailField label="상세 요청">
-                <p className="text-sm text-gray-500 leading-relaxed">
-                  예시: 주 2회 방문 희망, 거동이 불편하여 자택 방문 필요. 가족 연락처: 010-0000-0000
-                </p>
-              </DetailField>
-            </div>
-          )}
-
-          {detailTab === "운영 처리" && (
-            <div className="space-y-4">
-              <DetailField label="상태 변경">
-                <select className="w-full px-3 py-2 rounded-lg bg-[#F8F9FA] border border-gray-200 text-sm">
-                  {STATUSES.filter((s) => s !== "전체").map((s) => (
-                    <option key={s} selected={s === svc.status}>{s}</option>
-                  ))}
-                </select>
-              </DetailField>
-              <DetailField label="담당자 배정">
-                <select className="w-full px-3 py-2 rounded-lg bg-[#F8F9FA] border border-gray-200 text-sm">
-                  {STAFF.map((s) => (
-                    <option key={s} selected={s === (svc.staff || "미배정")}>{s}</option>
-                  ))}
-                </select>
-              </DetailField>
-              <DetailField label="방문 전 체크리스트">
-                <div className="space-y-1.5">
-                  {CHECKLIST.map((c, i) => (
-                    <label key={i} className="flex items-center gap-2 p-2 rounded-lg bg-[#F8F9FA] cursor-pointer hover:bg-[#1F6B78]/5">
-                      <input type="checkbox" defaultChecked={c.done} className="accent-[#1F6B78]" />
-                      <span className={`text-sm ${c.done ? "text-[#1F6B78] line-through" : "text-[#374151]"}`}>{c.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </DetailField>
-              <button className="w-full px-4 py-2.5 rounded-lg bg-[#1F6B78] text-white text-sm cursor-pointer" style={{ fontWeight: 600 }}>
-                저장
-              </button>
-            </div>
-          )}
-
-          {detailTab === "내부 메모" && (
             <div className="space-y-3">
-              <div className="p-3 rounded-lg bg-[#F2EBDD]/50 text-sm text-[#7A6C55]">
-                3/5 연락 시 부재 — 내일 오전 재연락 예정 (상담사 최OO)
+              <DetailField label="고객 메모">
+                <p className="text-sm text-gray-600 whitespace-pre-wrap">{selectedRow.customerNote || "-"}</p>
+              </DetailField>
+              <DetailField label="내부 메모">
+                <p className="text-sm text-gray-600 whitespace-pre-wrap">{selectedRow.internalNote || "-"}</p>
+              </DetailField>
+              <DetailField label="요청 접수일">
+                <p className="text-sm text-gray-600">{toDateText(selectedRow.createdAt)}</p>
+              </DetailField>
+            </div>
+          )}
+
+          {detailTab === "상태/배정" && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">상태 변경</label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm"
+                >
+                  {STATUS_OPTIONS.filter((opt) => opt.value).map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
               </div>
-              <textarea
-                placeholder="내부 메모... (고객에게 보이지 않음)"
-                rows={3}
-                className="w-full px-3 py-2 rounded-lg bg-[#F8F9FA] border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#1F6B78]/20"
-              />
-              <button className="px-4 py-2 rounded-lg bg-[#1F6B78] text-white text-xs cursor-pointer" style={{ fontWeight: 600 }}>
-                메모 저장
+
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">담당자 배정</label>
+                <select
+                  value={editStaffId}
+                  onChange={(e) => setEditStaffId(e.target.value ? Number(e.target.value) : "")}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm"
+                >
+                  <option value="">미배정</option>
+                  {staff.map((item) => (
+                    <option key={item.id} value={item.id}>{item.name} ({item.roleType})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">사유(선택)</label>
+                <input
+                  value={editReason}
+                  onChange={(e) => setEditReason(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm"
+                  placeholder="상태 변경 사유"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  onClick={() => void handleStatus(selectedRow.id, editStatus, editReason || undefined)}
+                  disabled={saving}
+                  className="px-4 py-2.5 rounded-lg bg-[#1F6B78] text-white text-sm disabled:opacity-60"
+                  style={{ fontWeight: 600 }}
+                >
+                  {saving ? "처리 중..." : "상태 저장"}
+                </button>
+                {editStaffId !== "" && (
+                  <button
+                    onClick={() => void handleAssign(selectedRow.id, editStaffId)}
+                    disabled={saving}
+                    className="px-4 py-2.5 rounded-lg border border-[#1F6B78] text-[#1F6B78] text-sm disabled:opacity-60"
+                    style={{ fontWeight: 600 }}
+                  >
+                    담당자 배정 저장
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {detailTab === "일정 확정" && (
+            <div className="space-y-3">
+              <DetailField label="현재 일정">
+                <p className="text-sm text-gray-600">{toDateText(selectedRow.scheduledStart)} ~ {toDateText(selectedRow.scheduledEnd)}</p>
+              </DetailField>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">시작</label>
+                <input
+                  type="datetime-local"
+                  value={scheduleStart}
+                  onChange={(e) => setScheduleStart(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">종료</label>
+                <input
+                  type="datetime-local"
+                  value={scheduleEnd}
+                  onChange={(e) => setScheduleEnd(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm"
+                />
+              </div>
+              <button
+                onClick={() => void handleSchedule(selectedRow.id)}
+                disabled={saving}
+                className="w-full px-4 py-2.5 rounded-lg bg-[#1F6B78] text-white text-sm disabled:opacity-60"
+                style={{ fontWeight: 600 }}
+              >
+                {saving ? <span className="inline-flex items-center gap-1.5"><Loader2 size={14} className="animate-spin" /> 저장 중...</span> : <span className="inline-flex items-center gap-1.5"><CalendarDays size={14} /> 일정 확정</span>}
               </button>
             </div>
           )}
 
-          {detailTab === "연락 로그" && (
-            <div className="space-y-3">
-              {[
-                { date: "2026-03-05 14:30", type: "전화", note: "부재중 — 문자 발송" },
-                { date: "2026-03-04 10:00", type: "문자", note: "접수 확인 안내 발송" },
-              ].map((log, i) => (
-                <div key={i} className="p-3 rounded-lg bg-[#F8F9FA]">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-[#1F6B78]" style={{ fontWeight: 600 }}>{log.type}</span>
-                    <span className="text-xs text-gray-400">{log.date}</span>
-                  </div>
-                  <p className="text-sm text-[#374151]">{log.note}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* CTAs */}
-          <div className="flex gap-2 pt-2 border-t border-gray-100">
-            <button className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-[#1F6B78] text-white text-xs cursor-pointer" style={{ fontWeight: 600 }}>
-              <Phone size={13} /> 전화
-            </button>
-            <button className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg border border-[#1F6B78] text-[#1F6B78] text-xs cursor-pointer">
-              일정 확정
-            </button>
-            <button className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg border border-gray-200 text-gray-500 text-xs cursor-pointer">
-              조합원 열기
-            </button>
+          <div className="pt-2 border-t border-gray-100 text-xs text-gray-500">
+            서비스 캘린더 및 운영 콘솔과 동일 데이터로 동기화됩니다.
           </div>
         </AdminDetailPanel>
       )}

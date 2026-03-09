@@ -1,207 +1,571 @@
-import { useState } from "react";
-import {
-  UserCog, Plus, Edit, Search, Clock, Calendar, Settings, ChevronDown
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import { Badge } from "../../components/admin/AdminBadge";
-import { AdminDetailPanel, DetailField, DetailTabs } from "../../components/admin/AdminDetailPanel";
-import { useLargeMode } from "../../components/layouts/AdminLayout";
+import { AdminDetailPanel, DetailField } from "../../components/admin/AdminDetailPanel";
+import { AdminModal } from "../../components/admin/AdminModal";
+import {
+  useAddStaffExceptionMutation,
+  useCreateStaffMutation,
+  useReplaceStaffAvailabilityMutation,
+  useStaffCapacitySummaryQuery,
+  useStaffQuery,
+  useUpdateStaffMutation,
+} from "../../hooks/admin/useAdminQueries";
+import { adminApi } from "../../lib/api/admin";
 
-const TABS = ["담당자 목록", "근무/가용 시간", "용량 설정", "예외/휴무", "배정 규칙"] as const;
+type StaffItem = {
+  id: number;
+  name: string;
+  roleType: string;
+  phone: string | null;
+  email: string | null;
+  dailyCapacity: number;
+  isActive: boolean;
+};
 
-interface Staff {
-  id: string; name: string; role: string; services: string[]; schedule: string;
-  maxPerDay: number; active: boolean; todayAssigned: number;
+type AvailabilityItem = {
+  id: number;
+  weekday: number;
+  startTime: string;
+  endTime: string;
+  slotMinutes: number;
+};
+
+type ExceptionItem = {
+  id: number;
+  staffId: number;
+  exceptionDate: string;
+  startTime: string | null;
+  endTime: string | null;
+  type: string;
+  reason: string | null;
+};
+
+const TABS = ["담당자 목록", "근무/가용 시간", "용량 설정", "예외/휴무"] as const;
+type Tab = (typeof TABS)[number];
+
+const ROLE_OPTIONS = ["medical", "nursing", "counsel", "admin", "other"];
+
+function weekdayLabel(value: number) {
+  return ["월", "화", "수", "목", "금", "토", "일"][value] ?? String(value);
 }
 
-const MOCK: Staff[] = [
-  { id: "S-001", name: "김간호", role: "간호", services: ["방문간호", "방문건강관리"], schedule: "월~금 09:00-18:00", maxPerDay: 6, active: true, todayAssigned: 4 },
-  { id: "S-002", name: "이상담", role: "상담", services: ["건강상담", "만성질환관리"], schedule: "월~금 09:00-18:00", maxPerDay: 8, active: true, todayAssigned: 5 },
-  { id: "S-003", name: "박의료", role: "의료", services: ["재활운동", "방문건강관리", "만성질환관리"], schedule: "월~목 09:00-17:00", maxPerDay: 5, active: true, todayAssigned: 3 },
-  { id: "S-004", name: "최행정", role: "행정", services: ["건강상담"], schedule: "월~금 09:00-18:00", maxPerDay: 10, active: true, todayAssigned: 2 },
-  { id: "S-005", name: "정보조", role: "간호", services: ["방문간호"], schedule: "화~토 10:00-19:00", maxPerDay: 5, active: false, todayAssigned: 0 },
-];
-
-const WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"];
-const TIME_SLOTS = ["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00"];
-
-const EXCEPTIONS = [
-  { id: 1, staff: "박의료", type: "휴무", date: "2026-03-10", reason: "개인 휴가" },
-  { id: 2, staff: "김간호", type: "반차", date: "2026-03-12", reason: "오전 병원 방문" },
-  { id: 3, staff: "이상담", type: "휴무", date: "2026-03-14", reason: "연차" },
-];
-
 export function AdminStaffPage() {
-  const { isLarge } = useLargeMode();
-  const [tab, setTab] = useState<(typeof TABS)[number]>(TABS[0]);
+  const [tab, setTab] = useState<Tab>("담당자 목록");
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Staff | null>(null);
-  const [detailTab, setDetailTab] = useState("정보");
+  const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
 
-  const filtered = MOCK.filter((s) => !search || s.name.includes(search) || s.role.includes(search));
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<StaffItem | null>(null);
+  const [name, setName] = useState("");
+  const [roleType, setRoleType] = useState("nursing");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [dailyCapacity, setDailyCapacity] = useState(6);
+  const [isActive, setIsActive] = useState(true);
+
+  const [availability, setAvailability] = useState<AvailabilityItem[]>([]);
+  const [exceptions, setExceptions] = useState<ExceptionItem[]>([]);
+  const [capacityDate, setCapacityDate] = useState(new Date().toISOString().slice(0, 10));
+
+  const [newExceptionDate, setNewExceptionDate] = useState(new Date().toISOString().slice(0, 10));
+  const [newExceptionType, setNewExceptionType] = useState("day_off");
+  const [newExceptionReason, setNewExceptionReason] = useState("");
+
+  const [saving, setSaving] = useState(false);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+
+  const staffQuery = useStaffQuery({ page: 1, pageSize: 300, search: search || undefined });
+  const capacityQuery = useStaffCapacitySummaryQuery(capacityDate);
+
+  const createStaff = useCreateStaffMutation();
+  const updateStaff = useUpdateStaffMutation();
+  const replaceAvailability = useReplaceStaffAvailabilityMutation();
+  const addException = useAddStaffExceptionMutation();
+
+  const staffRows = (staffQuery.data ?? []) as StaffItem[];
+  const selectedStaff = selectedStaffId == null ? null : staffRows.find((row) => row.id === selectedStaffId) ?? null;
+
+  const handleSelectStaff = (staffId: number | null) => {
+    setSelectedStaffId(staffId);
+  };
+
+  const handleCloseDetail = () => {
+    setSelectedStaffId(null);
+  };
+
+  useEffect(() => {
+    if (!selectedStaffId) {
+      setAvailability([]);
+      setExceptions([]);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [aRes, eRes] = await Promise.all([
+          adminApi.staffAvailability(selectedStaffId),
+          adminApi.staffExceptions(selectedStaffId),
+        ]);
+        if (cancelled) return;
+        setAvailability((aRes.data ?? []) as AvailabilityItem[]);
+        setExceptions((eRes.data ?? []) as ExceptionItem[]);
+      } catch {
+        if (cancelled) return;
+        setAvailability([]);
+        setExceptions([]);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedStaffId]);
+
+  useEffect(() => {
+    if (staffRows.length === 0) {
+      setSelectedStaffId(null);
+      return;
+    }
+    if (selectedStaffId != null && !staffRows.some((row) => row.id === selectedStaffId)) {
+      setSelectedStaffId(null);
+    }
+  }, [selectedStaffId, staffRows]);
+
+  const openCreate = () => {
+    setEditingStaff(null);
+    setName("");
+    setRoleType("nursing");
+    setPhone("");
+    setEmail("");
+    setDailyCapacity(6);
+    setIsActive(true);
+    setActionMessage(null);
+    setEditorOpen(true);
+  };
+
+  const openEdit = (row: StaffItem) => {
+    setEditingStaff(row);
+    setName(row.name);
+    setRoleType(row.roleType);
+    setPhone(row.phone || "");
+    setEmail(row.email || "");
+    setDailyCapacity(row.dailyCapacity);
+    setIsActive(row.isActive);
+    setActionMessage(null);
+    setEditorOpen(true);
+  };
+
+  const saveStaff = async () => {
+    if (!name.trim()) {
+      setActionMessage("이름은 필수입니다.");
+      return;
+    }
+    setSaving(true);
+    setActionMessage(null);
+    try {
+      const payload = {
+        name: name.trim(),
+        role_type: roleType,
+        phone: phone.trim() || null,
+        email: email.trim() || null,
+        daily_capacity: Number(dailyCapacity || 0),
+        is_active: isActive,
+      };
+      if (editingStaff) await updateStaff(editingStaff.id, payload);
+      else await createStaff(payload);
+      await staffQuery.refetch();
+      await capacityQuery.refetch();
+      setEditorOpen(false);
+      setActionMessage("담당자 정보를 저장했습니다.");
+    } catch (e) {
+      setActionMessage(e instanceof Error ? e.message : "담당자 저장 실패");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveAvailability = async () => {
+    if (!selectedStaffId) return;
+    setSaving(true);
+    setActionMessage(null);
+    try {
+      await replaceAvailability(
+        selectedStaffId,
+        availability.map((item) => ({
+          weekday: item.weekday,
+          start_time: item.startTime,
+          end_time: item.endTime,
+          slot_minutes: item.slotMinutes,
+        })),
+      );
+      const aRes = await adminApi.staffAvailability(selectedStaffId);
+      setAvailability((aRes.data ?? []) as AvailabilityItem[]);
+      setActionMessage("근무 가용시간을 저장했습니다.");
+    } catch (e) {
+      setActionMessage(e instanceof Error ? e.message : "가용시간 저장 실패");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const createException = async () => {
+    if (!selectedStaffId) return;
+    setSaving(true);
+    setActionMessage(null);
+    try {
+      await addException(selectedStaffId, {
+        exception_date: newExceptionDate,
+        type: newExceptionType,
+        reason: newExceptionReason || null,
+      });
+      const eRes = await adminApi.staffExceptions(selectedStaffId);
+      setExceptions((eRes.data ?? []) as ExceptionItem[]);
+      setActionMessage("예외 일정을 등록했습니다.");
+      setNewExceptionReason("");
+    } catch (e) {
+      setActionMessage(e instanceof Error ? e.message : "예외 일정 저장 실패");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const capacityRows = useMemo(() => (capacityQuery.data ?? []) as Array<{ staffId: number; name: string; dailyCapacity: number; assigned: number; remaining: number }>, [capacityQuery.data]);
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h1 className={`${isLarge ? "text-xl" : "text-lg"} text-[#111827]`} style={{ fontWeight: 700 }}>담당자/용량</h1>
-          <p className="text-xs text-gray-400 mt-0.5">담당자 관리, 근무 시간, 하루 처리량, 예외 일정</p>
+          <h1 className="text-lg text-[#111827]" style={{ fontWeight: 700 }}>담당자/용량</h1>
+          <p className="text-xs text-gray-400 mt-0.5">담당자 관리, 근무시간, 용량, 예외일정 관리</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="px-3.5 py-2 rounded-lg bg-[#1F6B78] text-white text-xs cursor-pointer hover:bg-[#185A65] flex items-center gap-1.5" style={{ fontWeight: 600 }}><Plus size={14} />담당자 추가</button>
-          <button className="px-3.5 py-2 rounded-lg border border-gray-200 text-xs text-[#374151] cursor-pointer hover:bg-gray-50 flex items-center gap-1.5" style={{ fontWeight: 500 }}><Clock size={14} />슬롯 템플릿</button>
-        </div>
+        <button
+          onClick={openCreate}
+          className="px-3.5 py-2 rounded-lg bg-[#1F6B78] text-white text-xs cursor-pointer hover:bg-[#185A65] flex items-center gap-1.5"
+          style={{ fontWeight: 600 }}
+        >
+          <Plus size={14} /> 담당자 추가
+        </button>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 overflow-x-auto border-b border-gray-200">
-        {TABS.map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`px-3 py-2.5 text-xs whitespace-nowrap cursor-pointer border-b-2 ${tab === t ? "border-[#1F6B78] text-[#1F6B78]" : "border-transparent text-gray-400 hover:text-gray-600"}`} style={{ fontWeight: tab === t ? 600 : 400 }}>{t}</button>
+        {TABS.map((item) => (
+          <button
+            key={item}
+            onClick={() => setTab(item)}
+            className={`px-3 py-2.5 text-xs whitespace-nowrap border-b-2 cursor-pointer ${tab === item ? "border-[#1F6B78] text-[#1F6B78]" : "border-transparent text-gray-400 hover:text-gray-600"}`}
+            style={{ fontWeight: tab === item ? 600 : 400 }}
+          >
+            {item}
+          </button>
         ))}
       </div>
 
+      {actionMessage && (
+        <div className="rounded-lg border border-[#1F6B78]/20 bg-[#1F6B78]/5 px-3 py-2 text-sm text-[#1F6B78]">
+          {actionMessage}
+        </div>
+      )}
+
       {tab === "담당자 목록" && (
         <div className="flex gap-4">
-          <div className="flex-1 min-w-0 space-y-3">
-            <div className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3">
-              <div className="relative flex-1 max-w-sm">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="이름, 역할 검색..." className="w-full pl-9 pr-4 py-2 rounded-lg bg-[#F8F9FC] border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B78]/20" />
-              </div>
-              <span className="text-xs text-gray-400 ml-auto">{filtered.length}명</span>
+          <div className={`flex-1 min-w-0 ${selectedStaff ? "hidden xl:block" : ""}`}>
+            <div className="bg-white rounded-xl p-3 shadow-sm mb-3">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="이름, 역할, 연락처 검색..."
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm"
+              />
             </div>
+
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-[#F8F9FC]">
-                  <tr>
-                    {["이름", "역할", "담당 서비스", "근무 요일/시간", "하루 최대", "오늘 배정", "상태", ""].map((h) => (
-                      <th key={h} className="text-left px-4 py-3 text-xs text-[#9CA3AF]" style={{ fontWeight: 600 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((s) => (
-                    <tr key={s.id} onClick={() => setSelected(s)} className={`border-t border-gray-50 cursor-pointer ${selected?.id === s.id ? "bg-[#1F6B78]/5" : "hover:bg-[#F8F9FC]/50"}`}>
-                      <td className="px-4 py-3 text-[#111827]" style={{ fontWeight: 600 }}>{s.name}</td>
-                      <td className="px-4 py-3"><Badge variant="primary">{s.role}</Badge></td>
-                      <td className="px-4 py-3"><div className="flex gap-1 flex-wrap">{s.services.map((sv) => <span key={sv} className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[10px]">{sv}</span>)}</div></td>
-                      <td className="px-4 py-3 text-xs text-gray-500">{s.schedule}</td>
-                      <td className="px-4 py-3 text-[#111827] text-center" style={{ fontWeight: 600 }}>{s.maxPerDay}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${s.todayAssigned >= s.maxPerDay ? "bg-[#F2EBDD] text-[#7A6C55]" : "bg-[#67B89A]/10 text-[#2D7A5E]"}`} style={{ fontWeight: 600 }}>{s.todayAssigned}/{s.maxPerDay}</span>
-                      </td>
-                      <td className="px-4 py-3"><Badge variant={s.active ? "secondary" : "neutral"}>{s.active ? "활성" : "비활성"}</Badge></td>
-                      <td className="px-4 py-3"><button className="p-1 rounded hover:bg-gray-100 text-gray-400 cursor-pointer"><Edit size={13} /></button></td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#F8F9FA]">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs text-gray-400">이름</th>
+                      <th className="px-4 py-3 text-left text-xs text-gray-400">역할</th>
+                      <th className="px-4 py-3 text-left text-xs text-gray-400">연락처</th>
+                      <th className="px-4 py-3 text-left text-xs text-gray-400">하루 용량</th>
+                      <th className="px-4 py-3 text-left text-xs text-gray-400">상태</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {staffQuery.loading && (
+                      <tr><td colSpan={5} className="px-4 py-8 text-sm text-gray-500 text-center">담당자 목록 로딩 중...</td></tr>
+                    )}
+                    {!staffQuery.loading && staffRows.length === 0 && (
+                      <tr><td colSpan={5} className="px-4 py-8 text-sm text-gray-400 text-center">담당자가 없습니다.</td></tr>
+                    )}
+                    {!staffQuery.loading && staffRows.map((row) => (
+                      <tr
+                        key={row.id}
+                        onClick={() => handleSelectStaff(row.id)}
+                        className={`border-t border-gray-50 cursor-pointer ${selectedStaffId === row.id ? "bg-[#1F6B78]/5" : "hover:bg-[#F8F9FA]/50"}`}
+                      >
+                        <td className="px-4 py-3 text-[#111827]" style={{ fontWeight: 600 }}>{row.name}</td>
+                        <td className="px-4 py-3"><Badge variant="primary">{row.roleType}</Badge></td>
+                        <td className="px-4 py-3 text-gray-600">{row.phone || "-"}</td>
+                        <td className="px-4 py-3 text-gray-700">{row.dailyCapacity}</td>
+                        <td className="px-4 py-3"><Badge variant={row.isActive ? "secondary" : "neutral"}>{row.isActive ? "활성" : "비활성"}</Badge></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-          {selected && (
-            <AdminDetailPanel title={selected.name} onClose={() => setSelected(null)} width="w-full xl:w-[380px]">
-              <div className="bg-[#F8F9FC] rounded-lg p-3 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#1F6B78]/10 flex items-center justify-center text-[#1F6B78]" style={{ fontWeight: 700 }}>{selected.name[0]}</div>
-                <div>
-                  <p className="text-sm text-[#111827]" style={{ fontWeight: 600 }}>{selected.name}</p>
-                  <p className="text-xs text-gray-400">{selected.role} · {selected.schedule}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#67B89A]/10 rounded-lg p-3 text-center">
-                  <p className="text-lg text-[#2D7A5E]" style={{ fontWeight: 700 }}>{selected.todayAssigned}</p>
-                  <p className="text-[10px] text-[#2D7A5E]">오늘 배정</p>
-                </div>
-                <div className="bg-[#1F6B78]/10 rounded-lg p-3 text-center">
-                  <p className="text-lg text-[#1F6B78]" style={{ fontWeight: 700 }}>{selected.maxPerDay - selected.todayAssigned}</p>
-                  <p className="text-[10px] text-[#1F6B78]">남은 용량</p>
-                </div>
-              </div>
-              <DetailField label="담당 서비스">
-                <div className="flex gap-1 flex-wrap">{selected.services.map((sv) => <Badge key={sv} variant="primaryLight">{sv}</Badge>)}</div>
-              </DetailField>
-              <button className="w-full py-2 rounded-lg border border-gray-200 text-xs text-[#374151] hover:bg-gray-50 cursor-pointer" style={{ fontWeight: 500 }}>예외 일정 추가</button>
+
+          {selectedStaff && (
+            <AdminDetailPanel title="담당자 상세" onClose={handleCloseDetail}>
+              <DetailField label="이름"><p className="text-sm text-gray-700">{selectedStaff.name}</p></DetailField>
+              <DetailField label="역할"><p className="text-sm text-gray-700">{selectedStaff.roleType}</p></DetailField>
+              <DetailField label="연락처"><p className="text-sm text-gray-700">{selectedStaff.phone || "-"}</p></DetailField>
+              <DetailField label="이메일"><p className="text-sm text-gray-700">{selectedStaff.email || "-"}</p></DetailField>
+              <DetailField label="하루 용량"><p className="text-sm text-gray-700">{selectedStaff.dailyCapacity}</p></DetailField>
+              <button
+                onClick={() => openEdit(selectedStaff)}
+                className="w-full px-4 py-2.5 rounded-lg border border-[#1F6B78] text-[#1F6B78] text-sm"
+                style={{ fontWeight: 600 }}
+              >
+                정보 수정
+              </button>
             </AdminDetailPanel>
           )}
         </div>
       )}
 
       {tab === "근무/가용 시간" && (
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr>
-                  <th className="text-left px-3 py-2 text-gray-400" style={{ fontWeight: 600 }}>시간</th>
-                  {WEEKDAYS.map((d) => <th key={d} className="px-3 py-2 text-gray-600" style={{ fontWeight: 600 }}>{d}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {TIME_SLOTS.map((t) => (
-                  <tr key={t} className="border-t border-gray-50">
-                    <td className="px-3 py-2 text-gray-400">{t}</td>
-                    {WEEKDAYS.map((d, i) => (
-                      <td key={d} className="px-1 py-1 text-center">
-                        <div className={`rounded py-1.5 ${i < 5 && t >= "09:00" && t <= "17:00" ? "bg-[#67B89A]/15 text-[#2D7A5E]" : "bg-gray-50 text-gray-300"}`}>
-                          {i < 5 && t >= "09:00" && t <= "17:00" ? "✓" : "-"}
-                        </div>
-                      </td>
-                    ))}
+        <div className="space-y-3">
+          <div className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-2">
+            <span className="text-xs text-gray-500">담당자</span>
+            <select
+              value={selectedStaffId ?? ""}
+              onChange={(e) => handleSelectStaff(e.target.value ? Number(e.target.value) : null)}
+              className="px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm"
+            >
+              <option value="">담당자 선택</option>
+              {staffRows.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+            </select>
+            <button
+              onClick={() => {
+                setAvailability((prev) => [
+                  ...prev,
+                  { id: Date.now(), weekday: 0, startTime: "09:00:00", endTime: "18:00:00", slotMinutes: 60 },
+                ]);
+              }}
+              className="ml-auto px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600"
+            >
+              슬롯 추가
+            </button>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-[#F8F9FA]">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs text-gray-400">요일</th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-400">시작</th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-400">종료</th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-400">슬롯(분)</th>
+                    <th className="px-4 py-3 text-left text-xs text-gray-400">삭제</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {availability.length === 0 && (
+                    <tr><td colSpan={5} className="text-center py-8 text-sm text-gray-400">가용시간이 없습니다.</td></tr>
+                  )}
+                  {availability.map((slot, idx) => (
+                    <tr key={slot.id} className="border-t border-gray-50">
+                      <td className="px-4 py-3">
+                        <select
+                          value={slot.weekday}
+                          onChange={(e) => {
+                            const weekday = Number(e.target.value);
+                            setAvailability((prev) => prev.map((item, itemIdx) => itemIdx === idx ? { ...item, weekday } : item));
+                          }}
+                          className="px-2 py-1.5 rounded border border-gray-200 bg-[#F8F9FA]"
+                        >
+                          {[0, 1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{weekdayLabel(n)}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="time"
+                          value={slot.startTime.slice(0, 5)}
+                          onChange={(e) => {
+                            const startTime = `${e.target.value}:00`;
+                            setAvailability((prev) => prev.map((item, itemIdx) => itemIdx === idx ? { ...item, startTime } : item));
+                          }}
+                          className="px-2 py-1.5 rounded border border-gray-200 bg-[#F8F9FA]"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="time"
+                          value={slot.endTime.slice(0, 5)}
+                          onChange={(e) => {
+                            const endTime = `${e.target.value}:00`;
+                            setAvailability((prev) => prev.map((item, itemIdx) => itemIdx === idx ? { ...item, endTime } : item));
+                          }}
+                          className="px-2 py-1.5 rounded border border-gray-200 bg-[#F8F9FA]"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="number"
+                          value={slot.slotMinutes}
+                          onChange={(e) => {
+                            const slotMinutes = Number(e.target.value || 60);
+                            setAvailability((prev) => prev.map((item, itemIdx) => itemIdx === idx ? { ...item, slotMinutes } : item));
+                          }}
+                          className="w-20 px-2 py-1.5 rounded border border-gray-200 bg-[#F8F9FA]"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => setAvailability((prev) => prev.filter((_, itemIdx) => itemIdx !== idx))}
+                          className="px-2 py-1 rounded border border-gray-200 text-xs text-gray-500"
+                        >
+                          삭제
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-            <select className="px-3 py-2 rounded-lg bg-[#F8F9FC] border border-gray-200 text-xs cursor-pointer focus:outline-none"><option>슬롯 템플릿: 1시간</option><option>슬롯 템플릿: 30분</option></select>
-            <button className="px-4 py-2 rounded-lg bg-[#1F6B78] text-white text-xs cursor-pointer hover:bg-[#185A65]" style={{ fontWeight: 600 }}>저장</button>
-          </div>
+
+          <button
+            onClick={() => void saveAvailability()}
+            disabled={saving || !selectedStaffId}
+            className="px-4 py-2.5 rounded-lg bg-[#1F6B78] text-white text-sm disabled:opacity-60"
+            style={{ fontWeight: 600 }}
+          >
+            {saving ? <span className="inline-flex items-center gap-1.5"><Loader2 size={14} className="animate-spin" /> 저장 중...</span> : "가용시간 저장"}
+          </button>
         </div>
       )}
 
       {tab === "용량 설정" && (
-        <div className="space-y-4">
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <p className="text-sm text-[#111827] mb-3" style={{ fontWeight: 600 }}>서비스 종류별 기본 처리량</p>
-            <div className="space-y-2">
-              {["방문간호", "건강상담", "방문건강관리", "재활운동", "만성질환관리"].map((s, i) => (
-                <div key={s} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-                  <span className="text-sm text-[#374151] flex-1">{s}</span>
-                  <input type="number" defaultValue={[6, 8, 5, 4, 6][i]} className="w-20 px-3 py-1.5 rounded-lg bg-[#F8F9FC] border border-gray-200 text-sm text-center focus:outline-none focus:ring-2 focus:ring-[#1F6B78]/20" />
-                  <span className="text-xs text-gray-400">건/일</span>
-                </div>
-              ))}
-            </div>
+        <div className="space-y-3">
+          <div className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-2">
+            <span className="text-xs text-gray-500">기준일</span>
+            <input
+              type="date"
+              value={capacityDate}
+              onChange={(e) => setCapacityDate(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm"
+            />
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <p className="text-sm text-[#111827] mb-3" style={{ fontWeight: 600 }}>용량 초과 시 정책</p>
-            <div className="space-y-3">
-              {[{ label: "대기열로 자동 이동", desc: "용량 초과 시 대기열에 추가", on: true }, { label: "관리자 승인 필요", desc: "초과 건은 관리자 확인 후 배정", on: false }, { label: "다른 담당자 추천", desc: "여유 있는 담당자를 자동 추천", on: true }].map((p) => (
-                <div key={p.label} className="flex items-center justify-between p-3 rounded-lg bg-[#F8F9FC]">
-                  <div><p className="text-sm text-[#374151]" style={{ fontWeight: 500 }}>{p.label}</p><p className="text-xs text-gray-400">{p.desc}</p></div>
-                  <div className={`w-10 h-5 rounded-full cursor-pointer relative ${p.on ? "bg-[#1F6B78]" : "bg-gray-300"}`}><div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${p.on ? "right-0.5" : "left-0.5"}`} /></div>
-                </div>
-              ))}
-            </div>
+
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-[#F8F9FA]">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs text-gray-400">담당자</th>
+                  <th className="px-4 py-3 text-left text-xs text-gray-400">일일 용량</th>
+                  <th className="px-4 py-3 text-left text-xs text-gray-400">배정</th>
+                  <th className="px-4 py-3 text-left text-xs text-gray-400">남은 용량</th>
+                </tr>
+              </thead>
+              <tbody>
+                {capacityQuery.loading && (
+                  <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">용량 요약 로딩 중...</td></tr>
+                )}
+                {!capacityQuery.loading && capacityRows.length === 0 && (
+                  <tr><td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-400">데이터가 없습니다.</td></tr>
+                )}
+                {!capacityQuery.loading && capacityRows.map((row) => (
+                  <tr key={row.staffId} className="border-t border-gray-50">
+                    <td className="px-4 py-3 text-[#111827]" style={{ fontWeight: 600 }}>{row.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{row.dailyCapacity}</td>
+                    <td className="px-4 py-3 text-gray-600">{row.assigned}</td>
+                    <td className="px-4 py-3"><Badge variant={row.remaining <= 0 ? "accent" : "secondary"}>{row.remaining}</Badge></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
       {tab === "예외/휴무" && (
         <div className="space-y-3">
-          <div className="bg-white rounded-xl p-3 shadow-sm flex items-center justify-between">
-            <span className="text-xs text-gray-400">{EXCEPTIONS.length}건의 예외 일정</span>
-            <button className="px-3 py-1.5 rounded-lg bg-[#1F6B78] text-white text-xs cursor-pointer hover:bg-[#185A65] flex items-center gap-1.5" style={{ fontWeight: 600 }}><Plus size={12} />예외 추가</button>
+          <div className="bg-white rounded-xl p-3 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">담당자</label>
+              <select
+                value={selectedStaffId ?? ""}
+                onChange={(e) => handleSelectStaff(e.target.value ? Number(e.target.value) : null)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm"
+              >
+                <option value="">담당자 선택</option>
+                {staffRows.map((row) => <option key={row.id} value={row.id}>{row.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">날짜</label>
+              <input
+                type="date"
+                value={newExceptionDate}
+                onChange={(e) => setNewExceptionDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">유형</label>
+              <select
+                value={newExceptionType}
+                onChange={(e) => setNewExceptionType(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm"
+              >
+                <option value="day_off">휴무</option>
+                <option value="unavailable">근무불가</option>
+                <option value="limited">제한근무</option>
+              </select>
+            </div>
+            <button
+              onClick={() => void createException()}
+              disabled={saving || !selectedStaffId}
+              className="px-4 py-2 rounded-lg bg-[#1F6B78] text-white text-sm disabled:opacity-60"
+              style={{ fontWeight: 600 }}
+            >
+              예외 등록
+            </button>
           </div>
+
+          <div className="bg-white rounded-xl p-3 shadow-sm">
+            <label className="block text-xs text-gray-500 mb-1">사유</label>
+            <input
+              value={newExceptionReason}
+              onChange={(e) => setNewExceptionReason(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm"
+              placeholder="예: 외부 교육 참석"
+            />
+          </div>
+
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-[#F8F9FC]"><tr>{["담당자", "유형", "날짜", "사유"].map((h) => <th key={h} className="text-left px-4 py-3 text-xs text-[#9CA3AF]" style={{ fontWeight: 600 }}>{h}</th>)}</tr></thead>
+              <thead className="bg-[#F8F9FA]">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs text-gray-400">날짜</th>
+                  <th className="px-4 py-3 text-left text-xs text-gray-400">유형</th>
+                  <th className="px-4 py-3 text-left text-xs text-gray-400">사유</th>
+                </tr>
+              </thead>
               <tbody>
-                {EXCEPTIONS.map((e) => (
-                  <tr key={e.id} className="border-t border-gray-50 hover:bg-[#F8F9FC]/50">
-                    <td className="px-4 py-3 text-[#111827]" style={{ fontWeight: 500 }}>{e.staff}</td>
-                    <td className="px-4 py-3"><Badge variant={e.type === "휴무" ? "neutral" : "accent"}>{e.type}</Badge></td>
-                    <td className="px-4 py-3 text-gray-500">{e.date}</td>
-                    <td className="px-4 py-3 text-gray-500">{e.reason}</td>
+                {exceptions.length === 0 && (
+                  <tr><td colSpan={3} className="px-4 py-8 text-center text-sm text-gray-400">등록된 예외 일정이 없습니다.</td></tr>
+                )}
+                {exceptions.map((row) => (
+                  <tr key={row.id} className="border-t border-gray-50">
+                    <td className="px-4 py-3 text-gray-600">{row.exceptionDate}</td>
+                    <td className="px-4 py-3"><Badge variant="accent">{row.type}</Badge></td>
+                    <td className="px-4 py-3 text-gray-600">{row.reason || "-"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -210,13 +574,54 @@ export function AdminStaffPage() {
         </div>
       )}
 
-      {tab === "배정 규칙" && (
-        <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-400">
-          <Settings size={32} className="mx-auto mb-3 opacity-30" />
-          <p className="text-sm">배정 규칙 설정은 Supabase 연동 후 구현됩니다</p>
-          <p className="text-xs mt-1">자동 배정 기준, 우선순위 로직 등을 설정할 수 있습니다</p>
+      <AdminModal
+        open={editorOpen}
+        onClose={() => setEditorOpen(false)}
+        title={editingStaff ? "담당자 수정" : "담당자 추가"}
+        size="md"
+        footer={
+          <>
+            <button onClick={() => setEditorOpen(false)} className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">취소</button>
+            <button
+              onClick={() => void saveStaff()}
+              disabled={saving}
+              className="px-4 py-2 rounded-lg bg-[#1F6B78] text-white text-sm disabled:opacity-60"
+              style={{ fontWeight: 600 }}
+            >
+              {saving ? <span className="inline-flex items-center gap-1.5"><Loader2 size={14} className="animate-spin" /> 저장 중...</span> : "저장"}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">이름 *</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">역할</label>
+            <select value={roleType} onChange={(e) => setRoleType(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm">
+              {ROLE_OPTIONS.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">연락처</label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">이메일</label>
+            <input value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">하루 처리량</label>
+            <input type="number" value={dailyCapacity} onChange={(e) => setDailyCapacity(Number(e.target.value || 0))} className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-[#F8F9FA] text-sm" />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="accent-[#1F6B78]" />
+            활성 상태
+          </label>
         </div>
-      )}
+      </AdminModal>
     </div>
   );
 }

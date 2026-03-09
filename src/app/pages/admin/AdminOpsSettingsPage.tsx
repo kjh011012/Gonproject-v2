@@ -1,151 +1,279 @@
-import { useState } from "react";
-import {
-  Settings, Save, RotateCcw, ChevronDown, AlertTriangle, CheckCircle2
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Save, RotateCcw, ChevronDown, Loader2 } from "lucide-react";
 import { ConfirmModal } from "../../components/admin/AdminModal";
 import { useLargeMode } from "../../components/layouts/AdminLayout";
+import { adminApi } from "../../lib/api/admin";
 
-interface Section { key: string; label: string; }
-const SECTIONS: Section[] = [
-  { key: "basic", label: "조합 기본정보 (고객 노출)" },
-  { key: "join", label: "가입/출자금 설정" },
-  { key: "service", label: "서비스 운영 설정" },
-  { key: "community", label: "커뮤니티 설정" },
-  { key: "policy", label: "약관/정책" },
-  { key: "banner", label: "고객용 배너/공지" },
-];
+type SettingItem = {
+  id: number;
+  settingGroup: string;
+  settingKey: string;
+  valueJson: Record<string, unknown>;
+  description: string | null;
+};
+
+function toPrettyJson(value: unknown) {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return "{}";
+  }
+}
 
 export function AdminOpsSettingsPage() {
   const { isLarge } = useLargeMode();
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(["basic"]));
-  const [saveModal, setSaveModal] = useState(false);
-  const [changed, setChanged] = useState(false);
 
-  const toggle = (key: string) => {
+  const [items, setItems] = useState<SettingItem[]>([]);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [draftValueMap, setDraftValueMap] = useState<Record<string, string>>({});
+  const [draftDescMap, setDraftDescMap] = useState<Record<string, string>>({});
+  const [errorsByKey, setErrorsByKey] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [savingAll, setSavingAll] = useState(false);
+  const [saveModal, setSaveModal] = useState(false);
+
+  async function loadSettings() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await adminApi.settings();
+      const rows = (res.data ?? []) as SettingItem[];
+      setItems(rows);
+      const nextValueMap: Record<string, string> = {};
+      const nextDescMap: Record<string, string> = {};
+      const groups = new Set<string>();
+
+      rows.forEach((row) => {
+        nextValueMap[row.settingKey] = toPrettyJson(row.valueJson ?? {});
+        nextDescMap[row.settingKey] = row.description ?? "";
+        groups.add(row.settingGroup || "general");
+      });
+
+      setDraftValueMap(nextValueMap);
+      setDraftDescMap(nextDescMap);
+      setErrorsByKey({});
+      setExpanded(new Set(groups));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "설정 목록을 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadSettings();
+  }, []);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, SettingItem[]>();
+    items.forEach((item) => {
+      const key = item.settingGroup || "general";
+      const list = map.get(key) ?? [];
+      list.push(item);
+      map.set(key, list);
+    });
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [items]);
+
+  const changedKeys = useMemo(() => {
+    return items
+      .filter((item) => {
+        const key = item.settingKey;
+        const originalValue = toPrettyJson(item.valueJson ?? {});
+        const currentValue = draftValueMap[key] ?? "";
+        const originalDesc = item.description ?? "";
+        const currentDesc = draftDescMap[key] ?? "";
+        return originalValue !== currentValue || originalDesc !== currentDesc;
+      })
+      .map((item) => item.settingKey);
+  }, [items, draftValueMap, draftDescMap]);
+
+  const changed = changedKeys.length > 0;
+
+  const toggle = (group: string) => {
     const next = new Set(expanded);
-    if (next.has(key)) next.delete(key); else next.add(key);
+    if (next.has(group)) next.delete(group); else next.add(group);
     setExpanded(next);
   };
 
-  const markChanged = () => { if (!changed) setChanged(true); };
+  async function saveOne(settingKey: string, silent = false) {
+    const raw = draftValueMap[settingKey] ?? "{}";
+    const desc = (draftDescMap[settingKey] ?? "").trim();
+
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(raw) as Record<string, unknown>;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("JSON object만 허용됩니다.");
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "JSON 형식이 올바르지 않습니다.";
+      setErrorsByKey((prev) => ({ ...prev, [settingKey]: message }));
+      if (!silent) setError(`${settingKey}: ${message}`);
+      return false;
+    }
+
+    setErrorsByKey((prev) => {
+      const next = { ...prev };
+      delete next[settingKey];
+      return next;
+    });
+
+    setSavingKey(settingKey);
+    try {
+      await adminApi.updateSetting(settingKey, parsed, desc || undefined);
+      return true;
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "저장 실패";
+      if (!silent) setError(`${settingKey}: ${message}`);
+      return false;
+    } finally {
+      setSavingKey(null);
+    }
+  }
+
+  async function saveAllChanged() {
+    setSavingAll(true);
+    setError(null);
+    try {
+      for (const key of changedKeys) {
+        const ok = await saveOne(key, true);
+        if (!ok) {
+          setError(`${key}: JSON 오류 또는 저장 실패`);
+          setSavingAll(false);
+          return;
+        }
+      }
+      await loadSettings();
+      setSaveModal(false);
+    } finally {
+      setSavingAll(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className={`${isLarge ? "text-xl" : "text-lg"} text-[#111827]`} style={{ fontWeight: 700 }}>운영 설정</h1>
-          <p className="text-xs text-gray-400 mt-0.5">고객 사이트와 연동되는 핵심 운영 값을 관리합니다</p>
+          <p className="text-xs text-gray-400 mt-0.5">DB 기반 운영 설정값을 직접 관리합니다</p>
         </div>
         <div className="flex items-center gap-2">
-          {changed && <button onClick={() => setChanged(false)} className="px-3.5 py-2 rounded-lg border border-gray-200 text-xs text-gray-500 cursor-pointer hover:bg-gray-50 flex items-center gap-1.5" style={{ fontWeight: 500 }}><RotateCcw size={14} />변경 취소</button>}
-          <button onClick={() => setSaveModal(true)} disabled={!changed} className="px-3.5 py-2 rounded-lg bg-[#1F6B78] text-white text-xs cursor-pointer hover:bg-[#185A65] disabled:opacity-40 disabled:cursor-default flex items-center gap-1.5" style={{ fontWeight: 600 }}><Save size={14} />저장</button>
+          {changed && (
+            <button
+              onClick={() => {
+                const resetValues: Record<string, string> = {};
+                const resetDescs: Record<string, string> = {};
+                items.forEach((item) => {
+                  resetValues[item.settingKey] = toPrettyJson(item.valueJson ?? {});
+                  resetDescs[item.settingKey] = item.description ?? "";
+                });
+                setDraftValueMap(resetValues);
+                setDraftDescMap(resetDescs);
+                setErrorsByKey({});
+              }}
+              className="px-3.5 py-2 rounded-lg border border-gray-200 text-xs text-gray-500 cursor-pointer hover:bg-gray-50 flex items-center gap-1.5"
+              style={{ fontWeight: 500 }}
+            >
+              <RotateCcw size={14} /> 변경 취소
+            </button>
+          )}
+          <button
+            onClick={() => setSaveModal(true)}
+            disabled={!changed || savingAll}
+            className="px-3.5 py-2 rounded-lg bg-[#1F6B78] text-white text-xs cursor-pointer hover:bg-[#185A65] disabled:opacity-40 disabled:cursor-default flex items-center gap-1.5"
+            style={{ fontWeight: 600 }}
+          >
+            {savingAll ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} 전체 저장
+          </button>
         </div>
       </div>
 
-      <div className="space-y-3 max-w-3xl">
-        {/* Basic Info */}
-        <AccordionCard label="조합 기본정보 (고객 노출)" sectionKey="basic" expanded={expanded} toggle={toggle}>
-          <div className="space-y-3">
-            <SettingField label="조합명" defaultValue="강원농산어촌의료사회적협동조합" onChange={markChanged} />
-            <SettingField label="대표전화" defaultValue="추후 개통예정" onChange={markChanged} />
-            <SettingField label="주소" defaultValue="추후 게시예정" onChange={markChanged} />
-            <SettingField label="운영시간" defaultValue="추후 게시예정" onChange={markChanged} />
-            <SettingField label="카카오채널" defaultValue="추후 개설예정" onChange={markChanged} />
-            <SettingField label="이메일" defaultValue="추후 게시예정" onChange={markChanged} />
-          </div>
-        </AccordionCard>
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>
+      )}
 
-        <AccordionCard label="가입/출자금 설정" sectionKey="join" expanded={expanded} toggle={toggle}>
-          <div className="space-y-3">
-            <SettingField label="출자금 최소값" defaultValue="10000" type="number" suffix="원" onChange={markChanged} />
-            <div>
-              <label className="block text-xs text-gray-500 mb-1.5" style={{ fontWeight: 600 }}>추천 선택지</label>
-              <div className="flex gap-2">
-                {["5만원", "10만원", "직접입력"].map((c) => <span key={c} className="px-3 py-1.5 rounded-lg bg-[#1F6B78]/10 text-[#1F6B78] text-xs" style={{ fontWeight: 500 }}>{c}</span>)}
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1.5" style={{ fontWeight: 600 }}>가입 안내 문구 (일반)</label>
-              <textarea defaultValue="조합원 가입 후 출자금을 납입해 주세요" rows={2} onChange={markChanged} className="w-full px-3 py-2 rounded-lg bg-[#F8F9FC] border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#1F6B78]/20" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1.5" style={{ fontWeight: 600 }}>가입 안내 문구 (어르신)</label>
-              <textarea defaultValue="가입하시면 좋은 서비스를 받으실 수 있어요" rows={2} onChange={markChanged} className="w-full px-3 py-2 rounded-lg bg-[#F8F9FC] border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#1F6B78]/20" />
-            </div>
-          </div>
-        </AccordionCard>
+      {loading && (
+        <div className="bg-white rounded-xl p-5 shadow-sm text-sm text-gray-500">설정 목록을 불러오는 중...</div>
+      )}
 
-        <AccordionCard label="서비스 운영 설정" sectionKey="service" expanded={expanded} toggle={toggle}>
-          <div className="space-y-3">
-            <SettingField label="기본 SLA (확인 기한)" defaultValue="24시간 내 확인" onChange={markChanged} />
-            <SettingField label="서비스 시간대" defaultValue="09:00 ~ 18:00" onChange={markChanged} />
-            <SettingField label="슬롯 길이" defaultValue="1시간" onChange={markChanged} />
-            <div className="flex items-center justify-between p-3 rounded-lg bg-[#F8F9FC]">
-              <div><p className="text-sm text-[#374151]" style={{ fontWeight: 500 }}>대기열 정책</p><p className="text-xs text-gray-400">용량 초과 시 자동 대기열 이동</p></div>
-              <div className="w-10 h-5 rounded-full bg-[#1F6B78] cursor-pointer relative"><div className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-white shadow" /></div>
+      {!loading && grouped.length === 0 && (
+        <div className="bg-white rounded-xl p-5 shadow-sm text-sm text-gray-400">등록된 설정이 없습니다.</div>
+      )}
+
+      <div className="space-y-3 max-w-4xl">
+        {grouped.map(([group, rows]) => {
+          const isOpen = expanded.has(group);
+          return (
+            <div key={group} className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <button
+                onClick={() => toggle(group)}
+                className="w-full flex items-center justify-between px-5 py-4 text-left cursor-pointer hover:bg-[#F8F9FC]/50"
+              >
+                <span className="text-sm text-[#111827]" style={{ fontWeight: 600 }}>{group}</span>
+                <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+              </button>
+              {isOpen && (
+                <div className="px-5 pb-5 border-t border-gray-100 pt-4 space-y-4">
+                  {rows.map((row) => {
+                    const isSaving = savingKey === row.settingKey;
+                    const fieldError = errorsByKey[row.settingKey];
+                    return (
+                      <div key={row.settingKey} className="rounded-lg border border-gray-200 p-4 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <p className="text-sm text-[#111827]" style={{ fontWeight: 600 }}>{row.settingKey}</p>
+                            <p className="text-xs text-gray-400">{row.description || "설명 없음"}</p>
+                          </div>
+                          <button
+                            onClick={() => void saveOne(row.settingKey)}
+                            disabled={isSaving}
+                            className="px-3 py-1.5 rounded-lg border border-[#1F6B78] text-[#1F6B78] text-xs cursor-pointer disabled:opacity-50 flex items-center gap-1"
+                            style={{ fontWeight: 600 }}
+                          >
+                            {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} 저장
+                          </button>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">설명</label>
+                          <input
+                            value={draftDescMap[row.settingKey] ?? ""}
+                            onChange={(e) => setDraftDescMap((prev) => ({ ...prev, [row.settingKey]: e.target.value }))}
+                            className="w-full px-3 py-2 rounded-lg bg-[#F8F9FC] border border-gray-200 text-sm"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">JSON 값</label>
+                          <textarea
+                            value={draftValueMap[row.settingKey] ?? "{}"}
+                            onChange={(e) => setDraftValueMap((prev) => ({ ...prev, [row.settingKey]: e.target.value }))}
+                            rows={6}
+                            className="w-full px-3 py-2 rounded-lg bg-[#F8F9FC] border border-gray-200 text-sm font-mono resize-none"
+                          />
+                          {fieldError && <p className="text-xs text-red-500 mt-1">{fieldError}</p>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        </AccordionCard>
-
-        <AccordionCard label="커뮤니티 설정" sectionKey="community" expanded={expanded} toggle={toggle}>
-          <div className="text-center py-6 text-gray-400">
-            <p className="text-sm">댓글/문의 노출 규칙 (추후 구현)</p>
-          </div>
-        </AccordionCard>
-
-        <AccordionCard label="약관/정책" sectionKey="policy" expanded={expanded} toggle={toggle}>
-          <div className="space-y-2">
-            {["개인정보 처리방침", "이용약관"].map((p) => (
-              <div key={p} className="flex items-center justify-between p-3 rounded-lg bg-[#F8F9FC]">
-                <span className="text-sm text-[#374151]">{p}</span>
-                <button className="text-xs text-[#1F6B78] cursor-pointer hover:underline">편집 (placeholder)</button>
-              </div>
-            ))}
-          </div>
-        </AccordionCard>
-
-        <AccordionCard label="고객용 배너/공지" sectionKey="banner" expanded={expanded} toggle={toggle}>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1.5" style={{ fontWeight: 600 }}>배너 문구 (일반)</label>
-              <input defaultValue="" placeholder="홈 상단 알림 문구 입력..." onChange={markChanged} className="w-full px-3 py-2 rounded-lg bg-[#F8F9FC] border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B78]/20" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1.5" style={{ fontWeight: 600 }}>배너 문구 (어르신)</label>
-              <input defaultValue="" placeholder="어르신용 쉬운 문구 입력..." onChange={markChanged} className="w-full px-3 py-2 rounded-lg bg-[#F8F9FC] border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B78]/20" />
-            </div>
-          </div>
-        </AccordionCard>
-
-        <p className="text-xs text-gray-400 pt-2">최근 변경: 2026-03-06 09:15 · 관리자 김OO</p>
+          );
+        })}
       </div>
 
-      <ConfirmModal open={saveModal} onClose={() => setSaveModal(false)} onConfirm={() => { alert("설정이 저장되었습니다. (Supabase 연동 후 실제 반영)"); setSaveModal(false); setChanged(false); }} title="설정 저장 확인" message="변경된 설정을 저장하시겠습니까? 고객 화면에 즉시 반영됩니다." confirmLabel="저장" />
-    </div>
-  );
-}
-
-function AccordionCard({ label, sectionKey, expanded, toggle, children }: { label: string; sectionKey: string; expanded: Set<string>; toggle: (k: string) => void; children: React.ReactNode }) {
-  const isOpen = expanded.has(sectionKey);
-  return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-      <button onClick={() => toggle(sectionKey)} className="w-full flex items-center justify-between px-5 py-4 text-left cursor-pointer hover:bg-[#F8F9FC]/50">
-        <span className="text-sm text-[#111827]" style={{ fontWeight: 600 }}>{label}</span>
-        <ChevronDown size={16} className={`text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-      </button>
-      {isOpen && <div className="px-5 pb-5 border-t border-gray-100 pt-4">{children}</div>}
-    </div>
-  );
-}
-
-function SettingField({ label, defaultValue, type = "text", suffix, onChange }: { label: string; defaultValue: string; type?: string; suffix?: string; onChange?: () => void }) {
-  return (
-    <div>
-      <label className="block text-xs text-gray-500 mb-1.5" style={{ fontWeight: 600 }}>{label}</label>
-      <div className="flex items-center gap-2">
-        <input type={type} defaultValue={defaultValue} onChange={onChange} className="flex-1 px-3 py-2 rounded-lg bg-[#F8F9FC] border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#1F6B78]/20" />
-        {suffix && <span className="text-xs text-gray-400">{suffix}</span>}
-      </div>
+      <ConfirmModal
+        open={saveModal}
+        onClose={() => setSaveModal(false)}
+        onConfirm={() => void saveAllChanged()}
+        title="설정 저장 확인"
+        message={`변경된 설정 ${changedKeys.length}건을 저장하시겠습니까? 고객 화면에 즉시 반영될 수 있습니다.`}
+        confirmLabel={savingAll ? "저장 중..." : "저장"}
+      />
     </div>
   );
 }

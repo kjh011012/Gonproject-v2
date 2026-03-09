@@ -3,13 +3,18 @@ import { PublicLayout } from "./components/layouts/PublicLayout";
 import { AdminLayout } from "./components/layouts/AdminLayout";
 import { HomePage } from "./pages/Home";
 import { AboutPage } from "./pages/About";
+import { AboutIntroPage } from "./pages/AboutIntro";
+import { GreetingPage } from "./pages/Greeting";
 import { ServicesPage } from "./pages/Services";
 import { JoinPage } from "./pages/Join";
 import { CommunityPage } from "./pages/Community";
+import { CommunityDetailPage } from "./pages/CommunityDetail";
 import { NoticesPage } from "./pages/Notices";
 import { InquiriesPage } from "./pages/Inquiries";
 import { LoginPage } from "./pages/Login";
 import { MyPagePage } from "./pages/MyPage";
+import { SubpagePlaceholder } from "./pages/SubpagePlaceholder";
+import { PeoplePage } from "./pages/People";
 import { AdminDashboard } from "./pages/admin/Dashboard";
 import { AdminApplications } from "./pages/admin/Applications";
 import { AdminNotices } from "./pages/admin/AdminNotices";
@@ -44,14 +49,37 @@ export const router = createHashRouter([
     Component: PublicLayout,
     children: [
       { index: true, Component: HomePage },
-      { path: "about", Component: AboutPage },
+      /* ── 조합소개 ── */
+      { path: "about", Component: AboutIntroPage },
+      { path: "about/greeting", Component: GreetingPage },
+      { path: "about/history", Component: SubpagePlaceholder },
+      { path: "about/organization", Component: SubpagePlaceholder },
+      { path: "about/people", Component: PeoplePage },
+      { path: "about/directions", Component: SubpagePlaceholder },
+      /* ── 사업소 안내 ── */
       { path: "services", Component: ServicesPage },
-      { path: "join", Component: JoinPage },
+      { path: "services/rights", Component: SubpagePlaceholder },
+      { path: "services/clinic", Component: SubpagePlaceholder },
+      { path: "services/homecare", Component: SubpagePlaceholder },
+      { path: "services/nursing", Component: SubpagePlaceholder },
+      /* ── 커뮤니티 ── */
       { path: "community", Component: CommunityPage },
-      { path: "notices", Component: NoticesPage },
+      { path: "community/press", Component: CommunityPage },
+      { path: "community/resources", Component: CommunityPage },
+      { path: "community/daily", Component: CommunityPage },
+      { path: "community/:type/:id", Component: CommunityDetailPage },
+      { path: "notices", Component: CommunityPage },
+      /* ── 참여 ── */
+      { path: "volunteer", Component: SubpagePlaceholder },
+      { path: "donate", Component: SubpagePlaceholder },
+      /* ── 조합원 (LOCKED - do not modify JoinPage) ── */
+      { path: "join", Component: JoinPage },
+      { path: "join/we-are", Component: AboutPage },
+      /* ── 기타 ── */
       { path: "inquiries", Component: InquiriesPage },
       { path: "login", Component: LoginPage },
       { path: "mypage", Component: MyPagePage },
+      { path: "search", Component: SubpagePlaceholder },
     ],
   },
   {
