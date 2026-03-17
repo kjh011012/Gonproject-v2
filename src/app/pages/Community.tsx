@@ -61,6 +61,7 @@ export const PRESS = [
   { id: 3, source: "KBS 강원", title: "[영상] \"병원 가려면 버스 두 번 타야 해요\" — 오지 마을 의료 현실", date: "2026.02.20", excerpt: "강원도 산간 마을 주민 김모 씨(78)는 가장 가까운 병원까지 왕복 3시간이 걸린다. 의료 협동조합의 방문진료 서비스가 시작되면 이런 불편이 크게 줄어들 전망이다.", category: "지역", image: "https://images.unsplash.com/photo-1742106850780-fbcc50b1ef5f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxydXJhbCUyMGhlYWx0aGNhcmUlMjBtZWRpY2FsJTIwY2xpbmljJTIwdmlzaXR8ZW58MXx8fHwxNzcyOTU3NDE4fDA&ixlib=rb-4.1.0&q=80&w=1080" },
   { id: 4, source: "메디게이트", title: "의료 사각지대 해소 위한 사회적 협동조합, 강원에서 첫 삽", date: "2026.02.15", excerpt: "의료 전문 매체가 강원농산어촌의료사협의 설립 배경과 운영 계획을 심층 분석했다. 1차 의료기관 부족, 고령화, 교통 불편 등 복합 문제를 주민 참여형 모델로 풀어가는 시도로 주목받고 있다.", category: "의료", image: "https://images.unsplash.com/photo-1582510246824-e89d845cd3f8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuZXdzcGFwZXIlMjBwcmVzcyUyMG1lZGlhJTIwam91cm5hbGlzdHxlbnwxfHx8fDE3NzI5NTc0MTR8MA&ixlib=rb-4.1.0&q=80&w=1080" },
   { id: 5, source: "연합뉴스", title: "강원 농촌 의료협동조합, 조합원 500명 돌파… \"기대 이상 호응\"", date: "2026.02.08", excerpt: "설립 초기 목표였던 조합원 300명을 넘어 500명을 돌파했다는 소식이 전해졌다. 지역 주민뿐 아니라 타 지역 출향민들의 응원 가입도 이어지고 있다.", category: "사회", image: "https://images.unsplash.com/photo-1590649681928-4b179f773bd5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvZmZpY2UlMjBtZWV0aW5nJTIwY29vcGVyYXRpdmUlMjB3b3Jrc3BhY2V8ZW58MXx8fHwxNzcyOTU3NDEzfDA&ixlib=rb-4.1.0&q=80&w=1080" },
+  { id: 10, source: "국민일보", title: "의료복지사회적협동조합 관련 보도", date: "2026.03.17", excerpt: "강원 농산어촌 지역의 의료 접근성 문제와 주민 참여형 의료복지 모델을 조명한 기사입니다. 조합의 활동 배경과 지역사회 반응을 함께 다룹니다.", category: "사회", image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080", externalUrl: "https://n.news.naver.com/article/005/0001833447?lfrom=kakao" },
   { id: 6, source: "YouTube", title: "영상 제목 불러오는 중...", date: "2026.03.10", excerpt: "의료복지사회적협동조합의 활동과 지역 의료 현장을 영상으로 담았습니다.", category: "영상", image: "https://i.ytimg.com/vi/nm_xdY6_0cY/mqdefault.jpg", videoType: "youtube" as const, youtubeId: "nm_xdY6_0cY" },
   { id: 7, source: "YouTube", title: "영상 제목 불러오는 중...", date: "2026.03.08", excerpt: "조합의 비전과 주민 참여형 의료복지 모델을 소개하는 영상입니다.", category: "영상", image: "https://i.ytimg.com/vi/HUBfBPQ3f8M/mqdefault.jpg", videoType: "youtube" as const, youtubeId: "HUBfBPQ3f8M" },
   { id: 8, source: "YouTube", title: "영상 제목 불러오는 중...", date: "2026.03.05", excerpt: "현장 사례 중심으로 의료사협의 역할과 변화를 설명합니다.", category: "영상", image: "https://i.ytimg.com/vi/gIpZzzZpRx8/mqdefault.jpg", videoType: "youtube" as const, youtubeId: "gIpZzzZpRx8" },
@@ -561,14 +562,15 @@ function PressTab({ isSenior }: { isSenior: boolean }) {
           <motion.div key={a.id} variants={fadeUp}>
             {(() => {
               const isVideo = a.category === "영상" && (!!a.videoType);
+              const isExternal = !!a.externalUrl;
               const youtubeId = a.videoType === "youtube" ? a.youtubeId : undefined;
               const cardTitle = isVideo ? (videoMeta[a.id]?.title || a.title) : a.title;
               const cardSource = isVideo ? (videoMeta[a.id]?.source || a.source) : a.source;
               const cardHref = isVideo
                 ? (youtubeId ? `https://youtu.be/${youtubeId}` : "#")
-                : `/community/press/${a.id}`;
-              const CardTag = isVideo ? "a" : Link;
-              const cardProps = isVideo
+                : (isExternal ? a.externalUrl! : `/community/press/${a.id}`);
+              const CardTag = isVideo || isExternal ? "a" : Link;
+              const cardProps = isVideo || isExternal
                 ? { href: cardHref, target: "_blank", rel: "noreferrer" }
                 : { to: cardHref };
 
