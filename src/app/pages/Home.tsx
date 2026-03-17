@@ -224,17 +224,73 @@ const FAQ_DATA = [
 ];
 
 const HOME_VIDEO_SHOWCASE = {
-  title: "조합 소식 영상",
-  description: "관리자 페이지에서 지정한 MP4 영상을 재생합니다.",
   // Vite base 경로를 따라가도록 구성 (서브경로 배포/빌드 산출물 직접 확인 시에도 동작)
   src: `${import.meta.env.BASE_URL}videos/home-news.mp4`,
 };
+
+const HOME_VIDEO_PLAYLIST = [
+  {
+    id: "mp4-home-news",
+    title: "조합 소식 영상 (MP4)",
+    type: "mp4" as const,
+    src: HOME_VIDEO_SHOWCASE.src,
+    thumbnail: IMG.homeVisit,
+    source: "로컬 업로드 영상",
+  },
+  {
+    id: "yt-c_lq6X_AT8w",
+    title: "",
+    type: "youtube" as const,
+    youtubeId: "c_lq6X_AT8w",
+    thumbnail: "https://i.ytimg.com/vi/c_lq6X_AT8w/mqdefault.jpg",
+    source: "YouTube",
+  },
+  {
+    id: "yt-pHq3vEC1KMM",
+    title: "",
+    type: "youtube" as const,
+    youtubeId: "pHq3vEC1KMM",
+    thumbnail: "https://i.ytimg.com/vi/pHq3vEC1KMM/mqdefault.jpg",
+    source: "YouTube",
+  },
+  {
+    id: "yt-q8eo16u92Go",
+    title: "",
+    type: "youtube" as const,
+    youtubeId: "q8eo16u92Go",
+    thumbnail: "https://i.ytimg.com/vi/q8eo16u92Go/mqdefault.jpg",
+    source: "YouTube",
+  },
+  {
+    id: "yt-Vwuv_uzY6wk",
+    title: "",
+    type: "youtube" as const,
+    youtubeId: "Vwuv_uzY6wk",
+    thumbnail: "https://i.ytimg.com/vi/Vwuv_uzY6wk/mqdefault.jpg",
+    source: "YouTube",
+  },
+];
 
 export function HomePage() {
   const { isSenior } = useSeniorMode();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [heroIdx, setHeroIdx] = useState(0);
   const [heroScrollY, setHeroScrollY] = useState(0);
+  const [homeNoticeTab, setHomeNoticeTab] = useState<"일반" | "영상">("일반");
+  const [homeNoticeVideoMeta, setHomeNoticeVideoMeta] = useState<
+    Record<number, { title: string; source: string }>
+  >({});
+  const [homePressTab, setHomePressTab] = useState<"일반" | "영상">("일반");
+  const [homePressVideoMeta, setHomePressVideoMeta] = useState<
+    Record<number, { title: string; source: string }>
+  >({});
+  const [selectedVideoId, setSelectedVideoId] = useState(
+    HOME_VIDEO_PLAYLIST[0].id,
+  );
+  const [videoTab, setVideoTab] = useState<"mp4" | "youtube">("mp4");
+  const [youtubeTitles, setYoutubeTitles] = useState<
+    Record<string, string>
+  >({});
 
   useEffect(() => {
     let frameId = 0;
@@ -257,9 +313,161 @@ export function HomePage() {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    const videoItems = NOTICES.filter(
+      (item) => item.videoType === "youtube" && item.youtubeId,
+    );
+
+    const loadVideoMeta = async () => {
+      const entries = await Promise.all(
+        videoItems.map(async (item) => {
+          const watchUrl = `https://www.youtube.com/watch?v=${item.youtubeId}`;
+          try {
+            const res = await fetch(
+              `https://www.youtube.com/oembed?url=${encodeURIComponent(watchUrl)}&format=json`,
+            );
+            if (!res.ok) {
+              return [item.id, { title: item.title, source: item.source || "YouTube" }] as const;
+            }
+            const data = (await res.json()) as {
+              title?: string;
+              author_name?: string;
+            };
+            return [
+              item.id,
+              {
+                title: data.title?.trim() || item.title,
+                source: data.author_name?.trim() || item.source || "YouTube",
+              },
+            ] as const;
+          } catch {
+            return [item.id, { title: item.title, source: item.source || "YouTube" }] as const;
+          }
+        }),
+      );
+
+      if (!active) return;
+      setHomeNoticeVideoMeta(Object.fromEntries(entries));
+    };
+
+    loadVideoMeta();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const videoItems = PRESS.filter(
+      (item) => item.videoType === "youtube" && item.youtubeId,
+    );
+
+    const loadVideoMeta = async () => {
+      const entries = await Promise.all(
+        videoItems.map(async (item) => {
+          const watchUrl = `https://www.youtube.com/watch?v=${item.youtubeId}`;
+          try {
+            const res = await fetch(
+              `https://www.youtube.com/oembed?url=${encodeURIComponent(watchUrl)}&format=json`,
+            );
+            if (!res.ok) {
+              return [item.id, { title: item.title, source: item.source }] as const;
+            }
+            const data = (await res.json()) as {
+              title?: string;
+              author_name?: string;
+            };
+            return [
+              item.id,
+              {
+                title: data.title?.trim() || item.title,
+                source: data.author_name?.trim() || item.source,
+              },
+            ] as const;
+          } catch {
+            return [item.id, { title: item.title, source: item.source }] as const;
+          }
+        }),
+      );
+
+      if (!active) return;
+      setHomePressVideoMeta(Object.fromEntries(entries));
+    };
+
+    loadVideoMeta();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const youtubeItems = HOME_VIDEO_PLAYLIST.filter(
+      (item) => item.type === "youtube",
+    );
+
+    const loadTitles = async () => {
+      const entries = await Promise.all(
+        youtubeItems.map(async (item) => {
+          const url = `https://www.youtube.com/watch?v=${item.youtubeId}`;
+          try {
+            const res = await fetch(
+              `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`,
+            );
+            if (!res.ok) return [item.id, item.title || "YouTube 영상"] as const;
+            const data = (await res.json()) as { title?: string };
+            return [
+              item.id,
+              data.title?.trim() || item.title || "YouTube 영상",
+            ] as const;
+          } catch {
+            return [item.id, item.title || "YouTube 영상"] as const;
+          }
+        }),
+      );
+
+      if (!active) return;
+      setYoutubeTitles(Object.fromEntries(entries));
+    };
+
+    loadTitles();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const filtered = HOME_VIDEO_PLAYLIST.filter(
+      (item) => item.type === videoTab,
+    );
+    if (!filtered.some((item) => item.id === selectedVideoId)) {
+      setSelectedVideoId(filtered[0]?.id ?? HOME_VIDEO_PLAYLIST[0].id);
+    }
+  }, [videoTab, selectedVideoId]);
+
   const heroSlide = HERO_SLIDES[heroIdx];
   const heroSubtitle =
     isSenior ? heroSlide.seniorSub : heroSlide.sub;
+  const selectedVideo =
+    HOME_VIDEO_PLAYLIST.find((item) => item.id === selectedVideoId) ??
+    HOME_VIDEO_PLAYLIST[0];
+  const homeNoticeItems = NOTICES.filter((item) => {
+    if (homeNoticeTab === "영상") return item.type === "영상";
+    return item.type !== "영상";
+  }).slice(0, 2);
+  const homePressItems = PRESS.filter((item) => {
+    if (homePressTab === "영상") return item.category === "영상";
+    return (
+      item.category === "사회" ||
+      item.category === "건강" ||
+      item.category === "지역" ||
+      item.category === "의료"
+    );
+  }).slice(0, 2);
+  const filteredVideoList = HOME_VIDEO_PLAYLIST.filter(
+    (item) => item.type === videoTab,
+  );
   const quickMenuRevealProgress = clamp(
     (heroScrollY - QUICK_MENU_REVEAL_START) /
       QUICK_MENU_REVEAL_DISTANCE,
@@ -553,60 +761,237 @@ export function HomePage() {
             <motion.div variants={fadeUp}>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-[#1F2623] text-xl md:text-2xl" style={{ fontFamily: "'Noto Serif KR', serif", fontWeight: 700 }}>공지사항</h2>
-                <Link to="/notices" className="group inline-flex items-center gap-1 text-sm text-[#1F4B43] hover:underline" style={{ fontWeight: 600 }}>
-                  전체보기 <ChevronRightIcon size={14} className="group-hover:translate-x-0.5 transition-transform" />
-                </Link>
-              </div>
-              <div className="space-y-6">
-                {NOTICES.slice(0, 2).map((n) => (
-                  <Link key={n.id} to={`/community/notices/${n.id}`} className="group flex gap-4">
-                    <div className="w-[38%] shrink-0 rounded-lg overflow-hidden aspect-[4/3]">
-                      <ImageWithFallback src={n.image} alt={n.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                    </div>
-                    <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
-                      <div>
-                        <span className="text-[12px] text-[#7A8584] mb-1.5 block" style={{ fontWeight: 500 }}>{n.type}</span>
-                        <h4 className="text-[#1F2623] text-[14px] leading-snug mb-1.5 group-hover:text-[#1F4B43] transition-colors line-clamp-2" style={{ fontWeight: 700 }}>{n.title}</h4>
-                        <p className="text-[#8C8C8C] text-[12px] leading-relaxed line-clamp-2 hidden sm:block">{n.excerpt}</p>
-                      </div>
-                      <div className="flex items-center gap-3 mt-2 text-[11px] text-[#ABABAB]">
-                        <span>{n.date}</span>
-                        <span className="flex items-center gap-1 text-[#7A8584] group-hover:text-[#1F4B43] transition-colors" style={{ fontWeight: 500 }}>보기 <ArrowRight size={10} /></span>
-                      </div>
-                    </div>
+                <div className="flex items-center gap-5">
+                  <div className="flex items-center gap-3">
+                    {(["일반", "영상"] as const).map((tab, idx) => {
+                      const active = homeNoticeTab === tab;
+                      return (
+                        <div key={tab} className="flex items-center gap-3">
+                          {idx > 0 ? (
+                            <span className="text-[#CEC6BB] text-[13px]">|</span>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => setHomeNoticeTab(tab)}
+                            className="group relative inline-flex h-9 items-center cursor-pointer px-1 text-[13px] leading-none tracking-[0.02em]"
+                            style={{
+                              fontWeight: active ? 700 : 500,
+                              fontFamily: "'Noto Serif KR', serif",
+                            }}
+                          >
+                            <span
+                              className={
+                                active
+                                  ? "text-[#1A2623]"
+                                  : "text-[#9A9E9D] group-hover:text-[#1F4B43]"
+                              }
+                            >
+                              {tab}
+                            </span>
+                            {active ? (
+                              <span className="absolute inset-x-0 bottom-[2px] h-[2px] rounded-full bg-gradient-to-r from-[#1F4B43] via-[#6E958B] to-[#1F4B43]" />
+                            ) : (
+                              <span className="absolute left-1/2 right-1/2 bottom-[2px] h-[1.5px] rounded-full bg-[#1F4B43]/40 transition-all duration-300 group-hover:left-1 group-hover:right-1" />
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <span className="text-[#CEC6BB] text-[13px]">|</span>
+                  <Link to="/notices" className="group inline-flex items-center gap-1 text-sm text-[#1F4B43] hover:underline" style={{ fontWeight: 600 }}>
+                    전체보기 <ChevronRightIcon size={14} className="group-hover:translate-x-0.5 transition-transform" />
                   </Link>
-                ))}
+                </div>
               </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={homeNoticeTab}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.28, ease: "easeOut" }}
+                  className="space-y-6"
+                >
+                  {homeNoticeItems.map((n) => {
+                    const isVideo = n.type === "영상" && n.videoType === "youtube" && !!n.youtubeId;
+                    const href = isVideo
+                      ? `https://youtu.be/${n.youtubeId}`
+                      : `/community/notices/${n.id}`;
+                    const title = isVideo
+                      ? (homeNoticeVideoMeta[n.id]?.title || n.title)
+                      : n.title;
+                    const source = isVideo
+                      ? (homeNoticeVideoMeta[n.id]?.source || n.source || "YouTube")
+                      : n.type;
+                    return isVideo ? (
+                    <a
+                      key={n.id}
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group flex gap-4"
+                    >
+                      <div className="w-[38%] shrink-0 rounded-lg overflow-hidden aspect-[4/3]">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${n.youtubeId}?autoplay=1&mute=1&loop=1&playlist=${n.youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
+                          title={title}
+                          allow="autoplay; encrypted-media; picture-in-picture"
+                          className="h-full w-full"
+                        />
+                      </div>
+                      <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
+                        <div>
+                          <span className="text-[12px] text-[#7A8584] mb-1.5 block" style={{ fontWeight: 500 }}>{source}</span>
+                          <h4 className="text-[#1F2623] text-[14px] leading-snug mb-1.5 group-hover:text-[#1F4B43] transition-colors line-clamp-2" style={{ fontWeight: 700 }}>{title}</h4>
+                          <p className="text-[#8C8C8C] text-[12px] leading-relaxed line-clamp-2 hidden sm:block">{n.excerpt}</p>
+                        </div>
+                        <div className="flex items-center gap-3 mt-2 text-[11px] text-[#ABABAB]">
+                          <span>{n.date}</span>
+                          <span className="flex items-center gap-1 text-[#7A8584] group-hover:text-[#1F4B43] transition-colors" style={{ fontWeight: 500 }}>영상 보기 <ArrowRight size={10} /></span>
+                        </div>
+                      </div>
+                    </a>
+                    ) : (
+                    <Link key={n.id} to={href} className="group flex gap-4">
+                      <div className="w-[38%] shrink-0 rounded-lg overflow-hidden aspect-[4/3]">
+                        <ImageWithFallback src={n.image} alt={n.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                      </div>
+                      <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
+                        <div>
+                          <span className="text-[12px] text-[#7A8584] mb-1.5 block" style={{ fontWeight: 500 }}>{n.type}</span>
+                          <h4 className="text-[#1F2623] text-[14px] leading-snug mb-1.5 group-hover:text-[#1F4B43] transition-colors line-clamp-2" style={{ fontWeight: 700 }}>{n.title}</h4>
+                          <p className="text-[#8C8C8C] text-[12px] leading-relaxed line-clamp-2 hidden sm:block">{n.excerpt}</p>
+                        </div>
+                        <div className="flex items-center gap-3 mt-2 text-[11px] text-[#ABABAB]">
+                          <span>{n.date}</span>
+                          <span className="flex items-center gap-1 text-[#7A8584] group-hover:text-[#1F4B43] transition-colors" style={{ fontWeight: 500 }}>보기 <ArrowRight size={10} /></span>
+                        </div>
+                      </div>
+                    </Link>
+                    );
+                  })}
+                </motion.div>
+              </AnimatePresence>
             </motion.div>
 
             {/* ── 우측: 언론보도 ── */}
             <motion.div variants={fadeUp}>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-[#1F2623] text-xl md:text-2xl" style={{ fontFamily: "'Noto Serif KR', serif", fontWeight: 700 }}>언론보도</h2>
-                <Link to="/community/press" className="group inline-flex items-center gap-1 text-sm text-[#1F4B43] hover:underline" style={{ fontWeight: 600 }}>
-                  전체보기 <ChevronRightIcon size={14} className="group-hover:translate-x-0.5 transition-transform" />
-                </Link>
-              </div>
-              <div className="space-y-6">
-                {PRESS.slice(0, 2).map((a) => (
-                  <Link key={a.id} to={`/community/press/${a.id}`} className="group flex gap-4">
-                    <div className="w-[38%] shrink-0 rounded-lg overflow-hidden aspect-[4/3]">
-                      <ImageWithFallback src={a.image} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                    </div>
-                    <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
-                      <div>
-                        <span className="text-[12px] text-[#7A8584] mb-1.5 block" style={{ fontWeight: 500 }}>{a.source}</span>
-                        <h4 className="text-[#1F2623] text-[14px] leading-snug mb-1.5 group-hover:text-[#1F4B43] transition-colors line-clamp-2" style={{ fontWeight: 700 }}>{a.title}</h4>
-                        <p className="text-[#8C8C8C] text-[12px] leading-relaxed line-clamp-2 hidden sm:block">{a.excerpt}</p>
-                      </div>
-                      <div className="flex items-center gap-3 mt-2 text-[11px] text-[#ABABAB]">
-                        <span>{a.date}</span>
-                        <span className="flex items-center gap-1 text-[#7A8584] group-hover:text-[#1F4B43] transition-colors" style={{ fontWeight: 500 }}>보기 <ArrowRight size={10} /></span>
-                      </div>
-                    </div>
+                <div className="flex items-center gap-5">
+                  <div className="flex items-center gap-3">
+                    {(["일반", "영상"] as const).map((tab, idx) => {
+                      const active = homePressTab === tab;
+                      return (
+                        <div key={tab} className="flex items-center gap-3">
+                          {idx > 0 ? (
+                            <span className="text-[#CEC6BB] text-[13px]">|</span>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => setHomePressTab(tab)}
+                            className="group relative inline-flex h-9 items-center cursor-pointer px-1 text-[13px] leading-none tracking-[0.02em]"
+                            style={{
+                              fontWeight: active ? 700 : 500,
+                              fontFamily: "'Noto Serif KR', serif",
+                            }}
+                          >
+                            <span
+                              className={
+                                active
+                                  ? "text-[#1A2623]"
+                                  : "text-[#9A9E9D] group-hover:text-[#1F4B43]"
+                              }
+                            >
+                              {tab}
+                            </span>
+                            {active ? (
+                              <span className="absolute inset-x-0 bottom-[2px] h-[2px] rounded-full bg-gradient-to-r from-[#1F4B43] via-[#6E958B] to-[#1F4B43]" />
+                            ) : null}
+                            {!active ? (
+                              <span className="absolute left-1/2 right-1/2 bottom-[2px] h-[1.5px] rounded-full bg-[#1F4B43]/40 transition-all duration-300 group-hover:left-1 group-hover:right-1" />
+                            ) : null}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <span className="text-[#CEC6BB] text-[13px]">|</span>
+                  <Link to="/community/press" className="group inline-flex items-center gap-1 text-sm text-[#1F4B43] hover:underline" style={{ fontWeight: 600 }}>
+                    전체보기 <ChevronRightIcon size={14} className="group-hover:translate-x-0.5 transition-transform" />
                   </Link>
-                ))}
+                </div>
               </div>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={homePressTab}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.28, ease: "easeOut" }}
+                  className="space-y-6"
+                >
+                  {homePressItems.map((a) => {
+                    const isVideo = a.category === "영상" && a.videoType === "youtube" && !!a.youtubeId;
+                    const href = isVideo
+                      ? `https://youtu.be/${a.youtubeId}`
+                      : `/community/press/${a.id}`;
+                  const title = isVideo
+                    ? (homePressVideoMeta[a.id]?.title || a.title)
+                    : a.title;
+                  const source = isVideo
+                    ? (homePressVideoMeta[a.id]?.source || a.source)
+                    : a.source;
+                    return isVideo ? (
+                    <a
+                      key={a.id}
+                      href={href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group flex gap-4"
+                    >
+                      <div className="w-[38%] shrink-0 rounded-lg overflow-hidden aspect-[4/3]">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${a.youtubeId}?autoplay=1&mute=1&loop=1&playlist=${a.youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
+                          title={title}
+                          allow="autoplay; encrypted-media; picture-in-picture"
+                          className="h-full w-full"
+                        />
+                      </div>
+                      <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
+                        <div>
+                          <span className="text-[12px] text-[#7A8584] mb-1.5 block" style={{ fontWeight: 500 }}>{source}</span>
+                          <h4 className="text-[#1F2623] text-[14px] leading-snug mb-1.5 group-hover:text-[#1F4B43] transition-colors line-clamp-2" style={{ fontWeight: 700 }}>{title}</h4>
+                          <p className="text-[#8C8C8C] text-[12px] leading-relaxed line-clamp-2 hidden sm:block">{a.excerpt}</p>
+                        </div>
+                        <div className="flex items-center gap-3 mt-2 text-[11px] text-[#ABABAB]">
+                          <span>{a.date}</span>
+                          <span className="flex items-center gap-1 text-[#7A8584] group-hover:text-[#1F4B43] transition-colors" style={{ fontWeight: 500 }}>영상 보기 <ArrowRight size={10} /></span>
+                        </div>
+                      </div>
+                    </a>
+                    ) : (
+                    <Link key={a.id} to={href} className="group flex gap-4">
+                      <div className="w-[38%] shrink-0 rounded-lg overflow-hidden aspect-[4/3]">
+                        <ImageWithFallback src={a.image} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                      </div>
+                      <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
+                        <div>
+                          <span className="text-[12px] text-[#7A8584] mb-1.5 block" style={{ fontWeight: 500 }}>{a.source}</span>
+                          <h4 className="text-[#1F2623] text-[14px] leading-snug mb-1.5 group-hover:text-[#1F4B43] transition-colors line-clamp-2" style={{ fontWeight: 700 }}>{a.title}</h4>
+                          <p className="text-[#8C8C8C] text-[12px] leading-relaxed line-clamp-2 hidden sm:block">{a.excerpt}</p>
+                        </div>
+                        <div className="flex items-center gap-3 mt-2 text-[11px] text-[#ABABAB]">
+                          <span>{a.date}</span>
+                          <span className="flex items-center gap-1 text-[#7A8584] group-hover:text-[#1F4B43] transition-colors" style={{ fontWeight: 500 }}>보기 <ArrowRight size={10} /></span>
+                        </div>
+                      </div>
+                    </Link>
+                    );
+                  })}
+                </motion.div>
+              </AnimatePresence>
             </motion.div>
           </AnimSection>
 
@@ -690,60 +1075,151 @@ export function HomePage() {
         <div className="max-w-[1200px] mx-auto px-5 sm:px-6">
           <AnimSection>
             <motion.div variants={fadeUp} className="mb-8 md:mb-10">
-              <h2
-                className="text-[#1F2623] text-xl md:text-2xl"
-                style={{
-                  fontFamily: "'Noto Serif KR', serif",
-                  fontWeight: 700,
-                }}
-              >
-                영상으로 보는 조합 소식
-              </h2>
-              <p className="mt-2 text-sm text-[#7A8584]">
-                업로드된 MP4 영상으로 조합 소식을 확인하실 수 있습니다.
-              </p>
+              <div className="inline-flex items-center gap-3 rounded-2xl border border-[#F1D9C7] bg-[#FFF7F0] px-4 py-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F8E0CE] text-[#C8764A]">
+                  <Heart size={18} strokeWidth={2.2} />
+                </span>
+                <h2
+                  className="text-xl md:text-2xl text-[#B26642]"
+                  style={{
+                    fontFamily: "'Noto Serif KR', serif",
+                    fontWeight: 700,
+                  }}
+                >
+                  의료복지사회적협동조합이란?
+                </h2>
+              </div>
             </motion.div>
           </AnimSection>
 
-          <AnimSection className="mx-auto max-w-[920px]">
+          <AnimSection>
             <motion.article
               variants={fadeUp}
-              className="overflow-hidden rounded-2xl border border-[#E7E1D6] bg-white shadow-[0_16px_34px_-28px_rgba(20,34,38,0.35)]"
+              className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]"
             >
-              <div className="aspect-video bg-black">
-                <video
-                  controls
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="auto"
-                  className="h-full w-full"
-                  onLoadedData={(e) => {
-                    e.currentTarget.play().catch(() => {});
-                  }}
-                >
-                  <source
-                    src={HOME_VIDEO_SHOWCASE.src}
-                    type="video/mp4"
-                  />
-                </video>
+              <div className="overflow-hidden rounded-2xl border border-[#E7E1D6] bg-white shadow-[0_16px_34px_-28px_rgba(20,34,38,0.35)]">
+                <div className="aspect-video bg-black">
+                  {selectedVideo.type === "mp4" ? (
+                    <video
+                      controls
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="auto"
+                      className="h-full w-full"
+                      onLoadedData={(e) => {
+                        e.currentTarget.play().catch(() => {});
+                      }}
+                    >
+                      <source
+                        src={selectedVideo.src}
+                        type="video/mp4"
+                      />
+                    </video>
+                  ) : (
+                    <iframe
+                      src={`https://www.youtube.com/embed/${selectedVideo.youtubeId}?rel=0&modestbranding=1`}
+                      title={selectedVideo.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="h-full w-full"
+                    />
+                  )}
+                </div>
               </div>
-              <div className="px-5 py-4 md:px-6">
-                <h3
-                  className="text-[#1F2623] text-[17px] md:text-[18px]"
-                  style={{ fontWeight: 700 }}
-                >
-                  {HOME_VIDEO_SHOWCASE.title}
-                </h3>
-                <p className="mt-1.5 text-sm text-[#6F7877]">
-                  {HOME_VIDEO_SHOWCASE.description}
-                </p>
-                <p className="mt-2 text-xs text-[#8C9694]">
-                  업로드 경로: <code>public/videos/home-news.mp4</code>
-                </p>
-              </div>
-            </motion.article>
+
+              <aside className="overflow-hidden rounded-2xl border border-[#E7E1D6] bg-white shadow-[0_16px_34px_-28px_rgba(20,34,38,0.2)]">
+                <div className="border-b border-[#EFE8DD] bg-[#FFFAF5] p-2">
+                  <div className="grid grid-cols-2 gap-1 rounded-lg bg-[#F6ECE2] p-1">
+                    <button
+                      type="button"
+                      onClick={() => setVideoTab("mp4")}
+                      className={`cursor-pointer rounded-md px-3 py-2 text-sm transition-colors ${
+                        videoTab === "mp4"
+                          ? "bg-white text-[#A45E3E] shadow-sm"
+                          : "text-[#977A65] hover:text-[#835E49]"
+                      }`}
+                      style={{ fontWeight: 700 }}
+                    >
+                      MP4
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVideoTab("youtube")}
+                      className={`cursor-pointer rounded-md px-3 py-2 text-sm transition-colors ${
+                        videoTab === "youtube"
+                          ? "bg-white text-[#A45E3E] shadow-sm"
+                          : "text-[#977A65] hover:text-[#835E49]"
+                      }`}
+                      style={{ fontWeight: 700 }}
+                    >
+                      YouTube
+                    </button>
+                  </div>
+                </div>
+                <div className="max-h-[760px] overflow-y-auto p-2">
+                  {filteredVideoList.map((item) => {
+                    const isActive = item.id === selectedVideo.id;
+                    const displayTitle =
+                      item.type === "youtube"
+                        ? youtubeTitles[item.id] || "YouTube 제목 불러오는 중..."
+                        : item.title;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSelectedVideoId(item.id)}
+                        className={`mb-2 w-full cursor-pointer rounded-xl border p-2 text-left transition-colors last:mb-0 ${
+                          isActive
+                            ? "border-[#E5C3AB] bg-[#FFF4EB]"
+                            : "border-transparent hover:border-[#F0E0D1] hover:bg-[#FFFAF5]"
+                        }`}
+                      >
+                        <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-3">
+                          <div className="overflow-hidden rounded-lg bg-[#EFE9E0]">
+                            <div className="aspect-video">
+                              <ImageWithFallback
+                                src={item.thumbnail}
+                                alt={item.title}
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          </div>
+                          <div className="min-w-0">
+                            <p
+                              className={`text-[11px] ${
+                                isActive
+                                  ? "text-[#B56E4E]"
+                                  : "text-[#A39486]"
+                              }`}
+                              style={{ fontWeight: 700 }}
+                            >
+                              {item.type === "youtube"
+                                ? "YOUTUBE"
+                                : "MP4"}
+                            </p>
+                            <p
+                              className={`mt-1 line-clamp-2 text-sm ${
+                                isActive
+                                  ? "text-[#7C4A31]"
+                                  : "text-[#5A5A5A]"
+                              }`}
+                              style={{ fontWeight: 700 }}
+                            >
+                              {displayTitle}
+                            </p>
+                            <p className="mt-1 text-xs text-[#9B8F84]">
+                              {item.source}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                </aside>
+              </motion.article>
           </AnimSection>
         </div>
       </section>

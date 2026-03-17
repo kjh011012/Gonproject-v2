@@ -44,11 +44,14 @@ export const NOTICES = [
   { id: 6, type: "전체" as const, title: "밝음의원 개원 준비 현황 보고", date: "2026-02-15", views: 201, hasFile: false, pinned: false, excerpt: "밝음의원 시설 공사와 인허가 절차가 순조롭게 진행 중입니다. 상반기 개원을 목표로 합니다.", image: "https://images.unsplash.com/photo-1742106850780-fbcc50b1ef5f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxydXJhbCUyMGhlYWx0aGNhcmUlMjBtZWRpY2FsJTIwY2xpbmljJTIwdmlzaXR8ZW58MXx8fHwxNzcyOTU3NDE4fDA&ixlib=rb-4.1.0&q=80&w=1080" },
   { id: 7, type: "전체" as const, title: "조합원 혜택 안내 업데이트", date: "2026-02-10", views: 134, hasFile: false, pinned: false, excerpt: "건강교실 무료 수강, 방문진료 우선 예약 등 조합원 혜택이 새롭게 업데이트되었습니다.", image: "https://images.unsplash.com/photo-1765671778226-b2f158b07d08?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxrb3JlYW4lMjBlbGRlcmx5JTIwY29tbXVuaXR5JTIwZ2F0aGVyaW5nJTIwd2FybXxlbnwxfHx8fDE3NzI5NTc0MTR8MA&ixlib=rb-4.1.0&q=80&w=1080" },
   { id: 8, type: "전체" as const, title: "개인정보처리방침 개정 안내", date: "2026-02-05", views: 89, hasFile: true, pinned: false, excerpt: "개인정보보호법 개정에 따라 개인정보처리방침이 일부 변경되었습니다.", image: "https://images.unsplash.com/photo-1604218118561-4bc4427d1e7e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkb2N1bWVudCUyMHBvbGljeSUyMHBhcGVyd29yayUyMG9mZmljaWFsfGVufDF8fHx8MTc3Mjk1NzQxNHww&ixlib=rb-4.1.0&q=80&w=1080" },
+  { id: 9, type: "영상" as const, title: "영상 제목 불러오는 중...", date: "2026-03-12", views: 318, hasFile: false, pinned: false, excerpt: "공지 영상으로 조합의 최근 안내와 주요 소식을 확인하세요.", image: "https://i.ytimg.com/vi/LIuJvfrinAk/mqdefault.jpg", videoType: "youtube" as const, youtubeId: "LIuJvfrinAk", source: "YouTube" },
+  { id: 10, type: "영상" as const, title: "영상 제목 불러오는 중...", date: "2026-03-09", views: 276, hasFile: false, pinned: false, excerpt: "현장 소식과 함께 공지사항을 영상으로 전달드립니다.", image: "https://i.ytimg.com/vi/39xaoB5Uai4/mqdefault.jpg", videoType: "youtube" as const, youtubeId: "39xaoB5Uai4", source: "YouTube" },
 ];
 export const NOTICE_TYPE_COLORS: Record<string, string> = {
   "긴급": "bg-[#C87C5A]/12 text-[#C87C5A]",
   "조합원": "bg-[#1F4B43]/10 text-[#1F4B43]",
   "전체": "bg-[#F0F0F0] text-[#999]",
+  "영상": "bg-[#2F6C64]/12 text-[#2F6C64]",
 };
 
 /* ─── Mock data: 언론보도 ─── */
@@ -58,6 +61,10 @@ export const PRESS = [
   { id: 3, source: "KBS 강원", title: "[영상] \"병원 가려면 버스 두 번 타야 해요\" — 오지 마을 의료 현실", date: "2026.02.20", excerpt: "강원도 산간 마을 주민 김모 씨(78)는 가장 가까운 병원까지 왕복 3시간이 걸린다. 의료 협동조합의 방문진료 서비스가 시작되면 이런 불편이 크게 줄어들 전망이다.", category: "지역", image: "https://images.unsplash.com/photo-1742106850780-fbcc50b1ef5f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxydXJhbCUyMGhlYWx0aGNhcmUlMjBtZWRpY2FsJTIwY2xpbmljJTIwdmlzaXR8ZW58MXx8fHwxNzcyOTU3NDE4fDA&ixlib=rb-4.1.0&q=80&w=1080" },
   { id: 4, source: "메디게이트", title: "의료 사각지대 해소 위한 사회적 협동조합, 강원에서 첫 삽", date: "2026.02.15", excerpt: "의료 전문 매체가 강원농산어촌의료사협의 설립 배경과 운영 계획을 심층 분석했다. 1차 의료기관 부족, 고령화, 교통 불편 등 복합 문제를 주민 참여형 모델로 풀어가는 시도로 주목받고 있다.", category: "의료", image: "https://images.unsplash.com/photo-1582510246824-e89d845cd3f8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxuZXdzcGFwZXIlMjBwcmVzcyUyMG1lZGlhJTIwam91cm5hbGlzdHxlbnwxfHx8fDE3NzI5NTc0MTR8MA&ixlib=rb-4.1.0&q=80&w=1080" },
   { id: 5, source: "연합뉴스", title: "강원 농촌 의료협동조합, 조합원 500명 돌파… \"기대 이상 호응\"", date: "2026.02.08", excerpt: "설립 초기 목표였던 조합원 300명을 넘어 500명을 돌파했다는 소식이 전해졌다. 지역 주민뿐 아니라 타 지역 출향민들의 응원 가입도 이어지고 있다.", category: "사회", image: "https://images.unsplash.com/photo-1590649681928-4b179f773bd5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvZmZpY2UlMjBtZWV0aW5nJTIwY29vcGVyYXRpdmUlMjB3b3Jrc3BhY2V8ZW58MXx8fHwxNzcyOTU3NDEzfDA&ixlib=rb-4.1.0&q=80&w=1080" },
+  { id: 6, source: "YouTube", title: "영상 제목 불러오는 중...", date: "2026.03.10", excerpt: "의료복지사회적협동조합의 활동과 지역 의료 현장을 영상으로 담았습니다.", category: "영상", image: "https://i.ytimg.com/vi/nm_xdY6_0cY/mqdefault.jpg", videoType: "youtube" as const, youtubeId: "nm_xdY6_0cY" },
+  { id: 7, source: "YouTube", title: "영상 제목 불러오는 중...", date: "2026.03.08", excerpt: "조합의 비전과 주민 참여형 의료복지 모델을 소개하는 영상입니다.", category: "영상", image: "https://i.ytimg.com/vi/HUBfBPQ3f8M/mqdefault.jpg", videoType: "youtube" as const, youtubeId: "HUBfBPQ3f8M" },
+  { id: 8, source: "YouTube", title: "영상 제목 불러오는 중...", date: "2026.03.05", excerpt: "현장 사례 중심으로 의료사협의 역할과 변화를 설명합니다.", category: "영상", image: "https://i.ytimg.com/vi/gIpZzzZpRx8/mqdefault.jpg", videoType: "youtube" as const, youtubeId: "gIpZzzZpRx8" },
+  { id: 9, source: "YouTube", title: "영상 제목 불러오는 중...", date: "2026.03.02", excerpt: "지역 돌봄과 방문의료가 어떻게 연결되는지 실제 사례를 통해 보여줍니다.", category: "영상", image: "https://i.ytimg.com/vi/I3ZePgcHWiE/mqdefault.jpg", videoType: "youtube" as const, youtubeId: "I3ZePgcHWiE" },
 ];
 
 /* ─── Mock data: 건강활동 및 모임 ─── */
@@ -99,71 +106,273 @@ export const MOOD_MAP: Record<string, { emoji: string; color: string }> = {
 
 /* ─── 공지 탭 (수평 카드 아카이브 스타일) ─── */
 function NoticesTab({ isSenior }: { isSenior: boolean }) {
+  const [noticeCat, setNoticeCat] = useState("전체");
   const [search, setSearch] = useState("");
+  const [noticeMobileCatOpen, setNoticeMobileCatOpen] = useState(false);
+  const noticeMobileCatRef = useRef<HTMLDivElement>(null);
+  const [videoMeta, setVideoMeta] = useState<
+    Record<number, { title: string; source: string }>
+  >({});
+  const NOTICE_CATS = ["전체", "긴급", "조합원", "영상"];
+
   const filtered = NOTICES.filter((n) => {
-    if (search && !n.title.includes(search)) return false;
-    return true;
+    if (noticeCat !== "전체" && n.type !== noticeCat) return false;
+    const q = search.trim();
+    if (!q) return true;
+    return [n.title, n.excerpt, n.type, n.source || ""].some((field) =>
+      field.includes(q),
+    );
   });
 
+  useEffect(() => {
+    let active = true;
+    const videoItems = NOTICES.filter(
+      (item) => item.videoType === "youtube" && item.youtubeId,
+    );
+
+    const loadVideoMeta = async () => {
+      const entries = await Promise.all(
+        videoItems.map(async (item) => {
+          const watchUrl = `https://www.youtube.com/watch?v=${item.youtubeId}`;
+          try {
+            const res = await fetch(
+              `https://www.youtube.com/oembed?url=${encodeURIComponent(watchUrl)}&format=json`,
+            );
+            if (!res.ok) {
+              return [item.id, { title: item.title, source: item.source || "YouTube" }] as const;
+            }
+            const data = (await res.json()) as {
+              title?: string;
+              author_name?: string;
+            };
+            return [
+              item.id,
+              {
+                title: data.title?.trim() || item.title,
+                source: data.author_name?.trim() || item.source || "YouTube",
+              },
+            ] as const;
+          } catch {
+            return [item.id, { title: item.title, source: item.source || "YouTube" }] as const;
+          }
+        }),
+      );
+
+      if (!active) return;
+      setVideoMeta(Object.fromEntries(entries));
+    };
+
+    loadVideoMeta();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!noticeMobileCatOpen) return;
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!noticeMobileCatRef.current) return;
+      if (!noticeMobileCatRef.current.contains(event.target as Node)) {
+        setNoticeMobileCatOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [noticeMobileCatOpen]);
+
   const formatDate = (d: string) => {
+    if (d.includes(".")) return d;
     const [y, m, dd] = d.split("-");
     return `${y}년 ${parseInt(m)}월 ${parseInt(dd)}일`;
   };
 
   return (
     <div>
-      {/* Search row */}
-      <div className="flex items-center justify-end mb-10 pb-6 border-b border-[#E5E0D8]">
-        <div className="relative w-full sm:w-56">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C0B8A8]" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="검색..."
-            className="w-full pl-9 pr-4 py-2.5 bg-transparent border-b border-[#D6CCBC] text-sm focus:outline-none focus:border-[#1F4B43] transition-colors placeholder:text-[#C0B8A8]"
-          />
+      {/* Filter row */}
+      <div className="mb-10 pb-6 border-b border-[#E5E0D8]">
+        <div className="hidden md:flex items-center justify-between gap-4">
+          <div className="flex items-center gap-1">
+            {NOTICE_CATS.map((cat, idx) => (
+              <div key={cat} className="flex items-center">
+                {idx > 0 ? (
+                  <div className="w-px h-4 bg-[#D6CCBC]/60 mx-1" />
+                ) : null}
+                <button
+                  onClick={() => setNoticeCat(cat)}
+                  className="relative px-4 py-2 cursor-pointer group"
+                >
+                  <span
+                    className={`text-sm tracking-wide transition-colors duration-300 ${
+                      noticeCat === cat
+                        ? "text-[#1F2623]"
+                        : "text-[#9A9E9D] hover:text-[#1F4B43]"
+                    }`}
+                    style={{
+                      fontFamily: "'Noto Serif KR', serif",
+                      fontWeight: noticeCat === cat ? 700 : 400,
+                    }}
+                  >
+                    {cat}
+                  </span>
+                  {noticeCat === cat ? (
+                    <motion.div
+                      layoutId="noticeFilter"
+                      className="absolute bottom-0 left-4 right-4 h-[2px] bg-[#1F4B43]"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  ) : null}
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="relative w-full max-w-[240px]">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C0B8A8]" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="검색..."
+              className="w-full pl-9 pr-4 py-2.5 bg-transparent border-b border-[#D6CCBC] text-sm focus:outline-none focus:border-[#1F4B43] transition-colors placeholder:text-[#C0B8A8]"
+            />
+          </div>
+        </div>
+
+        <div className="md:hidden flex items-end gap-3">
+          <div className="relative w-[42%] shrink-0" ref={noticeMobileCatRef}>
+            <label className="block text-[11px] text-[#999] mb-1" style={{ fontWeight: 600 }}>
+              카테고리
+            </label>
+            <button
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded={noticeMobileCatOpen}
+              onClick={() => setNoticeMobileCatOpen((open) => !open)}
+              className="flex w-full items-center justify-between px-3 py-2.5 bg-transparent border-b border-[#D6CCBC] text-sm text-[#1F2623] focus:outline-none"
+              style={{ fontFamily: "'Noto Serif KR', serif", fontWeight: 500 }}
+            >
+              <span>{noticeCat}</span>
+              <ChevronRight
+                size={16}
+                className={`text-[#555] transition-transform ${noticeMobileCatOpen ? "rotate-[270deg]" : "rotate-90"}`}
+              />
+            </button>
+            <AnimatePresence>
+              {noticeMobileCatOpen ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.18 }}
+                  className="absolute left-0 right-0 top-full mt-2 z-20 overflow-hidden rounded-xl border border-[#D6CCBC] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.12)]"
+                >
+                  <div role="listbox" className="py-1">
+                    {NOTICE_CATS.map((cat) => {
+                      const isActive = noticeCat === cat;
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => {
+                            setNoticeCat(cat);
+                            setNoticeMobileCatOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-sm transition-colors ${
+                            isActive
+                              ? "bg-[#1F4B43] text-white"
+                              : "text-[#1F2623] hover:bg-[#F7F2E8]"
+                          }`}
+                          style={{ fontFamily: "'Noto Serif KR', serif", fontWeight: isActive ? 600 : 500 }}
+                        >
+                          <span>{cat}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
+
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C0B8A8]" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="검색..."
+              className="w-full pl-9 pr-4 py-2.5 bg-transparent border-b border-[#D6CCBC] text-sm focus:outline-none focus:border-[#1F4B43] transition-colors placeholder:text-[#C0B8A8]"
+            />
+          </div>
         </div>
       </div>
 
-      {filtered.length === 0 && (
+      {filtered.length === 0 ? (
         <div className="text-center py-16">
-          <p className="text-[#7A8584]" style={{ fontFamily: "'Noto Serif KR', serif" }}>검색 결과가 없습니다.</p>
+          <p className="text-[#7A8584]" style={{ fontFamily: "'Noto Serif KR', serif" }}>
+            검색 결과가 없습니다.
+          </p>
         </div>
-      )}
+      ) : null}
 
       {/* 2-column horizontal card grid */}
-      <Anim key={search} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
-        {filtered.map((n) => (
-          <motion.div key={n.id} variants={fadeUp}>
-            <Link to={`/community/notices/${n.id}`} className="group flex gap-5">
-              {/* Image */}
-              <div className="w-[42%] shrink-0 rounded-lg overflow-hidden aspect-[4/3]">
-                <ImageWithFallback src={n.image} alt={n.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-              </div>
-              {/* Text content */}
-              <div className="flex-1 flex flex-col justify-between py-0.5">
-                <div>
-                  <span className="text-[12px] text-[#7A8584] mb-2 block" style={{ fontWeight: 500 }}>
-                    {n.type}
-                  </span>
-                  <h4 className="text-[#1F2623] text-[15px] leading-snug mb-2 group-hover:text-[#1F4B43] transition-colors line-clamp-2" style={{ fontWeight: 700 }}>
-                    {n.title}
-                  </h4>
-                  <p className="text-[#8C8C8C] text-[13px] leading-relaxed line-clamp-2">
-                    {n.excerpt}
-                  </p>
+      <Anim key={`${noticeCat}-${search}`} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
+        {filtered.map((n) => {
+          const isVideo = n.type === "영상" && n.videoType === "youtube" && !!n.youtubeId;
+          const href = isVideo ? `https://youtu.be/${n.youtubeId}` : `/community/notices/${n.id}`;
+          const title = isVideo ? (videoMeta[n.id]?.title || n.title) : n.title;
+          const source = isVideo ? (videoMeta[n.id]?.source || n.source || "YouTube") : n.type;
+          const CardTag = isVideo ? "a" : Link;
+          const cardProps = isVideo
+            ? { href, target: "_blank", rel: "noreferrer" as const }
+            : { to: href };
+
+          return (
+            <motion.div key={n.id} variants={fadeUp}>
+              <CardTag {...cardProps} className="group flex gap-5">
+                {/* Image / Video */}
+                <div className="w-[42%] shrink-0 rounded-lg overflow-hidden aspect-[4/3]">
+                  {isVideo ? (
+                    <iframe
+                      src={`https://www.youtube.com/embed/${n.youtubeId}?autoplay=1&mute=1&loop=1&playlist=${n.youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
+                      title={title}
+                      allow="autoplay; encrypted-media; picture-in-picture"
+                      className="h-full w-full"
+                    />
+                  ) : (
+                    <ImageWithFallback src={n.image} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  )}
                 </div>
-                <div className="flex items-center gap-4 mt-3 text-[12px] text-[#ABABAB]">
-                  <span>{formatDate(n.date)}</span>
-                  <span className="flex items-center gap-1 text-[#7A8584] group-hover:text-[#1F4B43] transition-colors" style={{ fontWeight: 500 }}>
-                    이야기 보기 <ArrowRight size={12} />
-                  </span>
+                {/* Text content */}
+                <div className="flex-1 flex flex-col justify-between py-0.5">
+                  <div>
+                    <span className="text-[12px] text-[#7A8584] mb-2 block" style={{ fontWeight: 500 }}>
+                      {source}
+                    </span>
+                    <h4 className="text-[#1F2623] text-[15px] leading-snug mb-2 group-hover:text-[#1F4B43] transition-colors line-clamp-2" style={{ fontWeight: 700 }}>
+                      {title}
+                    </h4>
+                    <p className="text-[#8C8C8C] text-[13px] leading-relaxed line-clamp-2">
+                      {n.excerpt}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4 mt-3 text-[12px] text-[#ABABAB]">
+                    <span>{formatDate(n.date)}</span>
+                    <span className="flex items-center gap-1 text-[#7A8584] group-hover:text-[#1F4B43] transition-colors" style={{ fontWeight: 500 }}>
+                      {isVideo ? "영상 보기" : "이야기 보기"} <ArrowRight size={12} />
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          </motion.div>
-        ))}
+              </CardTag>
+            </motion.div>
+          );
+        })}
       </Anim>
     </div>
   );
@@ -175,6 +384,7 @@ function PressTab({ isSenior }: { isSenior: boolean }) {
   const [pressSearch, setPressSearch] = useState("");
   const [mobileCatOpen, setMobileCatOpen] = useState(false);
   const mobileCatRef = useRef<HTMLDivElement>(null);
+  const [videoMeta, setVideoMeta] = useState<Record<number, { title: string; source: string }>>({});
   const PRESS_CATS = ["전체", ...Array.from(new Set(PRESS.map((p) => p.category)))];
   const filtered = PRESS.filter((p) => {
     if (pressCat !== "전체" && p.category !== pressCat) return false;
@@ -182,6 +392,42 @@ function PressTab({ isSenior }: { isSenior: boolean }) {
     if (!q) return true;
     return [p.title, p.excerpt, p.source].some((field) => field.includes(q));
   });
+
+  useEffect(() => {
+    let active = true;
+    const videoItems = PRESS.filter((item) => item.videoType === "youtube" && item.youtubeId);
+    const loadVideoMeta = async () => {
+      const metaEntries = await Promise.all(
+        videoItems.map(async (item) => {
+          const watchUrl = `https://www.youtube.com/watch?v=${item.youtubeId}`;
+          try {
+            const res = await fetch(
+              `https://www.youtube.com/oembed?url=${encodeURIComponent(watchUrl)}&format=json`,
+            );
+            if (!res.ok) {
+              return [item.id, { title: item.title, source: item.source }] as const;
+            }
+            const data = (await res.json()) as { title?: string; author_name?: string };
+            return [
+              item.id,
+              {
+                title: data.title?.trim() || item.title,
+                source: data.author_name?.trim() || item.source,
+              },
+            ] as const;
+          } catch {
+            return [item.id, { title: item.title, source: item.source }] as const;
+          }
+        }),
+      );
+      if (!active) return;
+      setVideoMeta(Object.fromEntries(metaEntries));
+    };
+    loadVideoMeta();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!mobileCatOpen) return;
@@ -281,7 +527,6 @@ function PressTab({ isSenior }: { isSenior: boolean }) {
                           style={{ fontFamily: "'Noto Serif KR', serif", fontWeight: isActive ? 600 : 500 }}
                         >
                           <span>{cat}</span>
-                          {isActive ? <span className="text-xs">선택</span> : null}
                         </button>
                       );
                     })}
@@ -314,19 +559,51 @@ function PressTab({ isSenior }: { isSenior: boolean }) {
       <Anim key={`${pressCat}-${pressSearch}`} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
         {filtered.map((a) => (
           <motion.div key={a.id} variants={fadeUp}>
-            <Link to={`/community/press/${a.id}`} className="group flex gap-5">
+            {(() => {
+              const isVideo = a.category === "영상" && (!!a.videoType);
+              const youtubeId = a.videoType === "youtube" ? a.youtubeId : undefined;
+              const cardTitle = isVideo ? (videoMeta[a.id]?.title || a.title) : a.title;
+              const cardSource = isVideo ? (videoMeta[a.id]?.source || a.source) : a.source;
+              const cardHref = isVideo
+                ? (youtubeId ? `https://youtu.be/${youtubeId}` : "#")
+                : `/community/press/${a.id}`;
+              const CardTag = isVideo ? "a" : Link;
+              const cardProps = isVideo
+                ? { href: cardHref, target: "_blank", rel: "noreferrer" }
+                : { to: cardHref };
+
+              return (
+                <CardTag {...cardProps} className="group flex gap-5">
               {/* Image */}
               <div className="w-[42%] shrink-0 rounded-lg overflow-hidden aspect-[4/3]">
-                <ImageWithFallback src={a.image} alt={a.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                {a.videoType === "youtube" && a.youtubeId ? (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${a.youtubeId}?autoplay=1&mute=1&loop=1&playlist=${a.youtubeId}&controls=0&modestbranding=1&rel=0&playsinline=1`}
+                    title={cardTitle}
+                    allow="autoplay; encrypted-media; picture-in-picture"
+                    className="h-full w-full"
+                  />
+                ) : a.videoType === "mp4" && a.videoSrc ? (
+                  <video
+                    src={a.videoSrc}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <ImageWithFallback src={a.image} alt={cardTitle} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                )}
               </div>
               {/* Text content */}
               <div className="flex-1 flex flex-col justify-between py-0.5">
                 <div>
                   <span className="text-[12px] text-[#7A8584] mb-2 block" style={{ fontWeight: 500 }}>
-                    {a.source}
+                    {cardSource}
                   </span>
                   <h4 className="text-[#1F2623] text-[15px] leading-snug mb-2 group-hover:text-[#1F4B43] transition-colors line-clamp-2" style={{ fontWeight: 700 }}>
-                    {a.title}
+                    {cardTitle}
                   </h4>
                   <p className="text-[#8C8C8C] text-[13px] leading-relaxed line-clamp-2">
                     {a.excerpt}
@@ -335,11 +612,13 @@ function PressTab({ isSenior }: { isSenior: boolean }) {
                 <div className="flex items-center gap-4 mt-3 text-[12px] text-[#ABABAB]">
                   <span>{a.date}</span>
                   <span className="flex items-center gap-1 text-[#7A8584] group-hover:text-[#1F4B43] transition-colors" style={{ fontWeight: 500 }}>
-                    이야기 보기 <ArrowRight size={12} />
+                    {isVideo ? "영상 보기" : "이야기 보기"} <ArrowRight size={12} />
                   </span>
                 </div>
               </div>
-            </Link>
+                </CardTag>
+              );
+            })()}
           </motion.div>
         ))}
       </Anim>
