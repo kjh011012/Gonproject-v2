@@ -91,12 +91,21 @@ export function PublicLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [hoveredNav, setHoveredNav] = useState<string | null>(null);
+  const [showOndolbom, setShowOndolbom] = useState(false);
   const megaMenuTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const delayMs = 1000 + Math.floor(Math.random() * 2001);
+    const timerId = window.setTimeout(() => {
+      setShowOndolbom(true);
+    }, delayMs);
+    return () => window.clearTimeout(timerId);
   }, []);
 
   useEffect(() => { setMobileOpen(false); setHoveredNav(null); }, [location.pathname]);
@@ -149,12 +158,33 @@ export function PublicLayout() {
                 <div className={`absolute inset-0 rounded-full transition-all duration-300 ${transparent ? "bg-white/10 scale-110" : "bg-[#1F4B43]/5 scale-100"} group-hover:scale-125 group-hover:bg-[#1F4B43]/8`} />
               </div>
               <div className="flex flex-col">
-                <span
-                  className={`text-sm tracking-tight transition-colors duration-300 ${transparent ? "text-white" : "text-[#1F4B43]"}`}
-                  style={{ fontFamily: "'Noto Serif KR', serif", fontWeight: 700, lineHeight: 1.2 }}
+                <div
+                  className={`relative h-[1.5em] overflow-hidden transition-[width] duration-700 ${
+                    showOndolbom ? "w-[108px]" : "w-[320px]"
+                  }`}
                 >
-                  {V.조합명}
-                </span>
+                  <span
+                    className={`absolute left-0 top-0 whitespace-nowrap text-sm tracking-tight transition-opacity duration-[1400ms] ${showOndolbom ? "opacity-0" : "opacity-100"} ${transparent ? "text-white" : "text-[#1F4B43]"}`}
+                    style={{ fontFamily: "'Noto Serif KR', serif", fontWeight: 700, lineHeight: 1.2 }}
+                  >
+                    강원농산어촌의료복지사회적협동조합
+                  </span>
+                  <span
+                    className={`absolute left-0 top-0 whitespace-nowrap text-[24px] leading-none tracking-[-0.02em] transition-opacity duration-[1400ms] ${showOndolbom ? "opacity-100" : "opacity-0"} bg-clip-text text-transparent`}
+                    style={{
+                      fontFamily: "'Jua', 'Pretendard', sans-serif",
+                      fontWeight: 400,
+                      backgroundImage:
+                        "linear-gradient(90deg, #1A56C8 0%, #10A087 45%, #E7B11C 78%, #F3CC63 100%)",
+                      backgroundSize: "100% 100%",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                      textShadow: "0 0 0.4px rgba(0,0,0,0.12)",
+                    }}
+                  >
+                    온돌봄
+                  </span>
+                </div>
                 <span
                   className={`text-[10px] tracking-wider transition-all duration-500 ${
                     scrolled ? "opacity-0 max-h-0" : "opacity-100 max-h-4"
@@ -168,16 +198,36 @@ export function PublicLayout() {
 
             <Link
               to="/"
-              className="lg:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center gap-1.5 w-[190px] max-w-[calc(100%-112px)]"
+              className="lg:hidden absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 max-w-[calc(100%-112px)]"
             >
               <img src={logoImg} alt={V.조합명_짧게} className="w-5 h-5 object-contain shrink-0" />
               <span
-                className={`min-w-0 whitespace-nowrap text-[10px] leading-none text-center tracking-[-0.045em] ${
-                  transparent ? "text-white" : "text-[#1F4B43]"
+                className={`relative min-w-0 h-[1em] overflow-hidden transition-[width] duration-700 ${
+                  showOndolbom ? "w-[56px]" : "w-[148px]"
                 }`}
-                style={{ fontFamily: "'Noto Serif KR', serif", fontWeight: 700 }}
               >
-                강원농산어촌의료사회적협동조합
+                <span
+                  className={`absolute left-0 top-0 whitespace-nowrap text-[10px] leading-none tracking-[-0.045em] transition-opacity duration-[1400ms] ${showOndolbom ? "opacity-0" : "opacity-100"} ${
+                    transparent ? "text-white" : "text-[#1F4B43]"
+                  }`}
+                  style={{ fontFamily: "'Noto Serif KR', serif", fontWeight: 700 }}
+                >
+                  강원농산어촌의료복지사회적협동조합
+                </span>
+                <span
+                  className={`absolute left-0 top-0 whitespace-nowrap text-[10px] leading-none tracking-[-0.045em] transition-opacity duration-[1400ms] ${showOndolbom ? "opacity-100" : "opacity-0"} bg-clip-text text-transparent`}
+                  style={{
+                    fontFamily: "'Jua', 'Pretendard', sans-serif",
+                    fontWeight: 400,
+                    fontSize: "13px",
+                    letterSpacing: "-0.02em",
+                    backgroundImage:
+                      "linear-gradient(90deg, #1A56C8 0%, #159582 52%, #E8B021 82%, #F1C54A 100%)",
+                    textShadow: "0 0 0.3px rgba(0,0,0,0.12)",
+                  }}
+                >
+                  온돌봄
+                </span>
               </span>
             </Link>
 

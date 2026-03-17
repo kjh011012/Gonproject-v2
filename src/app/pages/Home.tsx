@@ -226,8 +226,8 @@ const FAQ_DATA = [
 const HOME_VIDEO_SHOWCASE = {
   title: "조합 소식 영상",
   description: "관리자 페이지에서 지정한 MP4 영상을 재생합니다.",
-  // Vite public 경로: 프로젝트의 public/videos/home-news.mp4 파일을 교체하면 반영됩니다.
-  src: "/videos/home-news.mp4",
+  // Vite base 경로를 따라가도록 구성 (서브경로 배포/빌드 산출물 직접 확인 시에도 동작)
+  src: `${import.meta.env.BASE_URL}videos/home-news.mp4`,
 };
 
 export function HomePage() {

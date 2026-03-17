@@ -8,7 +8,7 @@ import {
 
 /* ─── 공통 치환 변수 (확정 시 여기만 수정) ─── */
 export const V = {
-  조합명: "강원농산어촌의료사회적협동조합",
+  조합명: "강원농산어촌의료복지사회적협동조합",
   조합명_짧게: "강원농산어촌의료사협",
   조합명_영문: "Gangwon Rural Community Healthcare Social Cooperative",
   대표전화: "추후 개통예정",
