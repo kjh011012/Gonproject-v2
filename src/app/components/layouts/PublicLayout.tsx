@@ -82,6 +82,9 @@ const UTILITY_ITEMS = [
   { label: "문의", path: "/inquiries" },
 ];
 
+const HIDDEN_NAV_LABELS = new Set(["조합원"]);
+const VISIBLE_NAV_ITEMS = NAV_ITEMS.filter((item) => !HIDDEN_NAV_LABELS.has(item.label));
+
 export function PublicLayout() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -233,7 +236,7 @@ export function PublicLayout() {
 
             {/* Desktop Nav */}
             <nav className="hidden lg:flex items-center gap-0">
-              {NAV_ITEMS.map((item) => {
+              {VISIBLE_NAV_ITEMS.map((item) => {
                 const active = isActive(item.path);
                 const hovered = hoveredNav === item.label;
                 return (
@@ -414,7 +417,7 @@ export function PublicLayout() {
               className="lg:hidden fixed inset-0 top-16 bg-white/98 backdrop-blur-xl z-40 overflow-y-auto"
             >
               <div className="px-5 py-6 space-y-1">
-                {NAV_ITEMS.map((item) => (
+                {VISIBLE_NAV_ITEMS.map((item) => (
                   <MobileNavGroup key={item.label} item={item} isActive={isActive} onNavigate={() => setMobileOpen(false)} />
                 ))}
                 <div className="pt-4 mt-4 border-t border-[#F0F0F0] space-y-2">
